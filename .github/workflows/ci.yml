@@ -33,7 +33,7 @@ jobs:
         uses: pnpm/action-setup@v6
 
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
@@ -68,7 +68,7 @@ jobs:
         uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 22.22.3
           cache: pnpm
@@ -80,7 +80,7 @@ jobs:
         run: pnpm run package:extension
 
       - name: Upload VSIX
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: difftale-vsix
           path: packages/vscode-difftale/difftale.vsix
