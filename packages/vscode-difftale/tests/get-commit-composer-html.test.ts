@@ -27,4 +27,15 @@ describe('getCommitComposerHtml', () => {
     expect(html).toContain('id="push"')
     expect(html).toContain("vscode.postMessage({ type: 'push' })")
   })
+
+  test('keeps push available when committed and working changes coexist', () => {
+    const html = getCommitComposerHtml('vscode-webview:', 'nonce', 2_000)
+
+    expect(html).toContain('repositoryState.hidden = hasWorkingChanges && !canPush')
+    expect(html).toContain('if (hasWorkingChanges && canPush)')
+    expect(html).toContain(
+      'Push the committed changes now. Your current working changes will stay local.',
+    )
+    expect(html).not.toContain('repositoryState.hidden = hasWorkingChanges\n')
+  })
 })

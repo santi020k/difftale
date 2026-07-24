@@ -461,14 +461,12 @@ export const getCommitComposerHtml = (
 
     const renderRepositoryState = (message, hasWorkingChanges) => {
       commitForm.hidden = !hasWorkingChanges
-      repositoryState.hidden = hasWorkingChanges
-
-      if (hasWorkingChanges) return
 
       const commitLabel = aheadCount === 1 ? 'commit' : 'commits'
       const behindLabel = message.behindCount === 1 ? 'commit' : 'commits'
       canPush = message.publishRequired ||
         (aheadCount > 0 && message.behindCount === 0)
+      repositoryState.hidden = hasWorkingChanges && !canPush
       branchRoute.textContent = message.upstreamBranch
         ? message.branch + ' → ' + message.upstreamBranch
         : message.remoteName
@@ -476,6 +474,22 @@ export const getCommitComposerHtml = (
           : message.branch
       pushButton.textContent = 'Push ' + aheadCount + ' ' + commitLabel
       pushButton.hidden = !canPush
+
+      if (hasWorkingChanges && canPush) {
+        repositoryState.dataset.state = 'outgoing'
+        repositoryStateIcon.textContent = '↑'
+        repositoryStateTitle.textContent = message.publishRequired
+          ? 'Committed branch ready to publish'
+          : aheadCount + ' ' + commitLabel + ' ready to push'
+        repositoryStateDescription.textContent = message.publishRequired
+          ? 'Publish the committed branch without including your current working changes.'
+          : 'Push the committed changes now. Your current working changes will stay local.'
+        pushButton.textContent = message.publishRequired
+          ? 'Publish branch'
+          : 'Push ' + aheadCount + ' ' + commitLabel
+
+        return
+      }
 
       if (message.publishRequired) {
         repositoryState.dataset.state = 'outgoing'

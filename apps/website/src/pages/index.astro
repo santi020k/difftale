@@ -10,9 +10,11 @@ import {
   ScrollReveal
 } from '@santi020k/lumen-astro'
 
+import extensionPackage from '../../../../packages/vscode-difftale/package.json'
 import BaseLayout from '../layouts/base-layout.astro'
 
 const repositoryUrl = 'https://github.com/santi020k/difftale'
+const extensionVersion = extensionPackage.version
 
 const features = [
   {
@@ -68,12 +70,14 @@ const steps = [
   }
 ]
 
-const commitExample = `feat(history): keep revision navigation stable across renames
+const commitExample = `feat(history): preserve file history across renames
 
-Resolve each revision with the path recorded at that commit so moving
-backward and forward continues to work after a file is renamed.
+Resolve each revision using the path recorded in that
+commit, so older and newer navigation keeps working
+after a rename.
 
-Preserve the working tree as the newest revision when local changes exist.`
+Keep the working tree as the newest revision when local
+changes exist.`
 ---
 
 <BaseLayout
@@ -84,12 +88,13 @@ Preserve the working tree as the newest revision when local changes exist.`
     <header class="site-header">
       <a class="brand-lockup" href="/" aria-label="Difftale home">
         <span class="brand-mark" aria-hidden="true">
-          <Icon name="git-branch-plus" decorative />
+          <img src="/difftale-mark.svg" alt="" />
         </span>
         <span>Difftale</span>
       </a>
 
       <nav class="site-nav" aria-label="Primary navigation">
+        <a href="#status">Status</a>
         <a href="#workflow">Workflow</a>
         <a href="#principles">Principles</a>
         <a href="#faq">FAQ</a>
@@ -107,7 +112,7 @@ Preserve the working tree as the newest revision when local changes exist.`
         <div class="hero-copy">
           <Badge variant="outline" class="availability-badge">
             <span class="status-dot" aria-hidden="true"></span>
-            In active development for VS Code
+            {`v${extensionVersion} · Development preview`}
           </Badge>
           <h1 id="hero-title">
             Make every change tell a
@@ -139,7 +144,12 @@ Preserve the working tree as the newest revision when local changes exist.`
         </div>
 
         <ScrollReveal animation="scale" class="product-stage">
-          <Card glass="strong" class="composer-window">
+          <Card
+            glass="strong"
+            class="composer-window"
+            role="img"
+            aria-label="Difftale Commit Composer preview showing a valid Conventional Commit with three staged files."
+          >
             <div class="window-bar">
               <div class="window-title">
                 <span class="window-icon"><Icon name="git-commit-horizontal" decorative size="sm" /></span>
@@ -166,9 +176,9 @@ Preserve the working tree as the newest revision when local changes exist.`
                 </span>
               </div>
               <div class="draft-row">
-                <button class="draft-chip is-selected" type="button" aria-pressed="true">Precise</button>
-                <button class="draft-chip" type="button" aria-pressed="false">Concise</button>
-                <button class="draft-chip" type="button" aria-pressed="false">Detailed</button>
+                <span class="draft-chip is-selected">Precise</span>
+                <span class="draft-chip">Concise</span>
+                <span class="draft-chip">Detailed</span>
               </div>
               <div class="composer-actions">
                 <span class="validation-message">
@@ -253,6 +263,24 @@ Preserve the working tree as the newest revision when local changes exist.`
             </Card>
           ))}
         </RevealGroup>
+
+        <Card id="status" as="section" class="status-card" aria-labelledby="status-title">
+          <div class="status-meta">
+            <Badge variant="warning">Development preview</Badge>
+            <span>{`Extension v${extensionVersion}`}</span>
+          </div>
+          <div class="status-copy">
+            <h3 id="status-title">The core loop works. The public release is still taking shape.</h3>
+            <p>
+              Commit composition, revision navigation, explicit Git operations, and pull request
+              drafting are implemented. For now, run Difftale from an Extension Development Host
+              and follow progress on GitHub.
+            </p>
+          </div>
+          <ButtonLink href={repositoryUrl} newTab showArrow variant="secondary">
+            Run from source
+          </ButtonLink>
+        </Card>
       </section>
 
       <section id="workflow" class="section workflow-section" aria-labelledby="workflow-title">
@@ -362,7 +390,9 @@ Preserve the working tree as the newest revision when local changes exist.`
       </section>
 
       <section class="final-cta" aria-labelledby="cta-title">
-        <div class="cta-mark" aria-hidden="true"><Icon name="git-branch-plus" decorative size="xl" /></div>
+        <div class="cta-mark" aria-hidden="true">
+          <img src="/difftale-mark.svg" alt="" />
+        </div>
         <div>
           <p class="eyebrow">The project is taking shape</p>
           <h2 id="cta-title">Follow the tale from the first commit.</h2>
@@ -377,7 +407,7 @@ Preserve the working tree as the newest revision when local changes exist.`
     <footer class="site-footer">
       <a class="brand-lockup" href="/" aria-label="Difftale home">
         <span class="brand-mark" aria-hidden="true">
-          <Icon name="git-branch-plus" decorative />
+          <img src="/difftale-mark.svg" alt="" />
         </span>
         <span>Difftale</span>
       </a>

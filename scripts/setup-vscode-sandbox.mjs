@@ -59,7 +59,7 @@ const createSandbox = async () => {
   }
 
   if (await pathExists(join(sandboxWorkspace, '.git'))) {
-    console.log(`Difftale sandbox is ready at ${sandboxWorkspace}`)
+    process.stdout.write(`Difftale sandbox is ready at ${sandboxWorkspace}\n`)
 
     return
   }
@@ -175,6 +175,11 @@ export const ending = 'The history remains readable'
     commitEnvironment(4),
   )
 
+  runGit(
+    ['push', '--set-upstream', 'origin', 'sandbox-changes'],
+    sandboxWorkspace,
+  )
+
   await writeWorkspaceFile(
     'src/draft.ts',
     `export const draft = 'This staged file is ready for commit generation'
@@ -204,7 +209,7 @@ Difftale repository.
 `,
   )
 
-  console.log(`Created Difftale sandbox at ${sandboxWorkspace}`)
+  process.stdout.write(`Created Difftale sandbox at ${sandboxWorkspace}\n`)
 }
 
 await createSandbox()

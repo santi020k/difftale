@@ -166,8 +166,9 @@ pnpm dev
 Choose **Debug Difftale in Sandbox** from the Run and Debug view to open the
 extension against a disposable Git repository. The sandbox contains file
 history across a rename, a local `origin`, a feature branch, passing Git hooks,
-and staged, unstaged, and untracked changes. This makes commit, push, pull
-request, and revision-navigation testing safe without changing this repository.
+and staged, unstaged, and untracked changes. This makes commit, push,
+pull-request draft, and revision-navigation testing safe without changing this
+repository.
 
 The sandbox is created on first launch and preserves changes between debug
 sessions. Restore its original state from the command palette with
