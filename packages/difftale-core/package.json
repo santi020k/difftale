@@ -35,5 +35,14 @@
   "engines": {
     "node": ">=22"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/santi020k/difftale.git",
+    "directory": "packages/difftale-core"
+  },
+  "homepage": "https://github.com/santi020k/difftale#readme",
+  "bugs": {
+    "url": "https://github.com/santi020k/difftale/issues"
+  },
   "license": "MIT"
 }

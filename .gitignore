@@ -5,3 +5,6 @@ coverage
 *.log
 .turbo
 .DS_Store
+.env
+.env.*
+!.env.example

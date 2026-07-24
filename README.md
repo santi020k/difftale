@@ -41,6 +41,21 @@ VSIX with:
 pnpm package:extension
 ```
 
+## Releases
+
+Create a changeset with `pnpm changeset` for every user-facing change. Merges
+to `main` update a release pull request; merging that pull request publishes
+`@santi020k/difftale-core` to npm, creates a GitHub release, and publishes the
+extension to VS Code Marketplace and Open VSX.
+
+Copy `.env.example` to `.env` for local release commands. Configure its secret
+values as GitHub Actions repository secrets before enabling automated releases:
+
+- `NPM_TOKEN`
+- `VSCE_PAT`
+- `OVSX_PAT`
+- `TURBO_TOKEN` and `TURBO_TEAM` (optional remote cache)
+
 ## License
 
 MIT

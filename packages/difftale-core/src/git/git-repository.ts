@@ -97,6 +97,16 @@ export class GitRepository {
     repositoryPath: string,
     limitCount = RECENT_COMMIT_LIMIT_COUNT,
   ): Promise<string[]> => {
+    const hasCommits =
+      (await this.#tryRun(
+        ['rev-parse', '--verify', 'HEAD'],
+        repositoryPath,
+      )) !== undefined
+
+    if (!hasCommits) {
+      return []
+    }
+
     const output = await this.#runner.run(
       ['log', `-${limitCount}`, '--format=%s'],
       repositoryPath,

@@ -83,6 +83,19 @@ describe('GitRepository', () => {
     ])
   })
 
+  test('returns no recent subjects before the first commit', async () => {
+    const repositoryPath = createRepository()
+    writeFileSync(
+      join(repositoryPath, 'src', 'feature.ts'),
+      'export const enabled = true\n',
+    )
+    runGit(repositoryPath, ['add', '.'])
+
+    const repository = new GitRepository()
+
+    await expect(repository.getRecentCommitSubjects(repositoryPath)).resolves.toEqual([])
+  })
+
   test('reports commits ahead of the tracked branch', async () => {
     const repositoryPath = createRepository()
     const remotePath = mkdtempSync(join(tmpdir(), 'difftale-core-remote-'))
