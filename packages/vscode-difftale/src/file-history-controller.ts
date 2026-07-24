@@ -4,6 +4,7 @@ import { type GitRepository } from '@santi020k/difftale-core'
 
 import * as vscode from 'vscode'
 
+import { getCommitUrl } from './utils/get-commit-url'
 import {
   STATUS_BAR_PRIORITY,
   WORKING_REVISION_LABEL,
@@ -66,6 +67,43 @@ export class FileHistoryController implements vscode.Disposable {
 
   public dispose = (): void => {
     this.#statusBarItem.dispose()
+  }
+
+  public copyRevisionHash = async (commitHash: string): Promise<void> => {
+    await vscode.env.clipboard.writeText(commitHash)
+
+    await vscode.window.showInformationMessage(
+      `Copied commit ${commitHash.slice(0, 12)}.`,
+    )
+  }
+
+  public openRevisionOnRemote = async (
+    absoluteFilePath: string,
+    commitHash: string,
+  ): Promise<void> => {
+    const repositoryPath = await resolveRepositoryPath(
+      this.#repository,
+      vscode.Uri.file(absoluteFilePath),
+    )
+
+    if (!repositoryPath) {
+      await vscode.window.showErrorMessage('Difftale could not find a Git repository.')
+
+      return
+    }
+
+    const remoteUrl = await this.#repository.getRemoteUrl(repositoryPath)
+    const commitUrl = remoteUrl ? getCommitUrl(remoteUrl, commitHash) : undefined
+
+    if (!commitUrl) {
+      await vscode.window.showWarningMessage(
+        'Difftale could not determine a web URL for this repository.',
+      )
+
+      return
+    }
+
+    await vscode.env.openExternal(vscode.Uri.parse(commitUrl))
   }
 
   public getNavigationState = async (

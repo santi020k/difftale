@@ -239,10 +239,16 @@ export class CommitMessageController {
     modelFamily: string | undefined,
     cancellationToken: vscode.CancellationToken,
   ): Promise<ConventionalCommit[]> {
-    const models = await vscode.lm.selectChatModels({
-      family: modelFamily,
-      vendor: 'copilot',
-    })
+    let models: readonly vscode.LanguageModelChat[]
+
+    try {
+      models = await vscode.lm.selectChatModels({
+        family: modelFamily,
+        vendor: 'copilot',
+      })
+    } catch {
+      return []
+    }
 
     const model = models[0]
 

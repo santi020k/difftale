@@ -130,6 +130,48 @@ export class GitRepository {
     return branch
   }
 
+  public getBranches = async (repositoryPath: string): Promise<string[]> => {
+    const output = await this.#runner.run(
+      [
+        'for-each-ref',
+        '--format=%(refname:short)',
+        'refs/heads',
+        'refs/remotes',
+      ],
+      repositoryPath,
+    )
+
+    return [
+      ...new Set(
+        output
+          .split('\n')
+          .map(branch => branch.trim())
+          .filter(branch => branch && !branch.endsWith('/HEAD')),
+      ),
+    ]
+  }
+
+  public getRemoteUrl = async (
+    repositoryPath: string,
+  ): Promise<string | undefined> => {
+    const remoteNames = (
+      (await this.#tryRun(['remote'], repositoryPath)) ?? ''
+    )
+      .split('\n')
+      .map(remoteName => remoteName.trim())
+      .filter(Boolean)
+
+    const remoteName = remoteNames.includes('origin')
+      ? 'origin'
+      : remoteNames[0]
+
+    if (!remoteName) return undefined
+
+    return (
+      await this.#tryRun(['remote', 'get-url', remoteName], repositoryPath)
+    )?.trim()
+  }
+
   public getBranchSyncStatus = async (
     repositoryPath: string,
   ): Promise<GitBranchSyncStatus> => {

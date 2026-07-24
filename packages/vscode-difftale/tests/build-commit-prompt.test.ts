@@ -25,4 +25,31 @@ describe('buildCommitPrompt', () => {
     expect(prompt).toContain('12345')
     expect(prompt).not.toContain('123456')
   })
+
+  test('lists every changed file independently from the fitted diff', () => {
+    const prompt = buildCommitPrompt({
+      context: {
+        configurationFiles: [],
+        recentSubjects: [],
+        suggestedScopes: [],
+      },
+      diff: [
+        '--- a/first.ts',
+        '+++ b/first.ts',
+        '+first',
+        '--- a/second.ts',
+        '+++ b/second.ts',
+        '+second',
+      ].join('\n'),
+      settings: {
+        allowedTypes: ['feat'],
+        customInstructions: [],
+        draftCount: 1,
+        maximumDiffLengthCharacters: 40,
+        maximumHeaderLengthCharacters: 72,
+      },
+    })
+
+    expect(prompt).toContain('Changed files:\n\nfirst.ts\nsecond.ts')
+  })
 })

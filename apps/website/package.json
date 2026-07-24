@@ -11,6 +11,7 @@
     "clean": "rm -rf .astro dist"
   },
   "dependencies": {
+    "@astrojs/sitemap": "catalog:",
     "@santi020k/lumen-astro": "catalog:",
     "astro": "catalog:"
   },

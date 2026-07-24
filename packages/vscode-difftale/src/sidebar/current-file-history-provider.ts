@@ -18,6 +18,9 @@ const getOriginalFilePath = (
 }
 
 class FileHistoryTreeItem extends vscode.TreeItem {
+  public readonly absoluteFilePath: string
+  public readonly revisionHash: string | undefined
+
   public constructor(
     target: RevisionTarget,
     absoluteFilePath: string,
@@ -30,11 +33,17 @@ class FileHistoryTreeItem extends vscode.TreeItem {
       vscode.TreeItemCollapsibleState.None,
     )
 
+    this.absoluteFilePath = absoluteFilePath
+
+    this.revisionHash = revision?.hash
+
     this.command = {
       arguments: [vscode.Uri.file(absoluteFilePath), targetIndex],
       command: 'difftale.openFileRevision',
       title: 'Open File Revision',
     }
+
+    this.contextValue = revision ? 'difftaleCommittedRevision' : undefined
 
     this.description = revision
       ? `${revision.shortHash} · ${new Date(revision.authoredAt).toLocaleDateString()}`

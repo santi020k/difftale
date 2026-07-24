@@ -102,6 +102,16 @@
       {
         "command": "difftale.openFileRevision",
         "title": "Difftale: Open File Revision"
+      },
+      {
+        "command": "difftale.copyRevisionHash",
+        "title": "Difftale: Copy Revision Hash",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "difftale.openRevisionOnRemote",
+        "title": "Difftale: Open Revision on Remote",
+        "icon": "$(link-external)"
       }
     ],
     "configuration": {
@@ -283,6 +293,18 @@
           "command": "difftale.showGitOutput",
           "group": "navigation",
           "when": "view == difftale.gitOperations"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "difftale.copyRevisionHash",
+          "group": "inline@1",
+          "when": "view == difftale.currentFileHistory && viewItem == difftaleCommittedRevision"
+        },
+        {
+          "command": "difftale.openRevisionOnRemote",
+          "group": "inline@2",
+          "when": "view == difftale.currentFileHistory && viewItem == difftaleCommittedRevision"
         }
       ]
     }

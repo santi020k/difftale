@@ -4,6 +4,7 @@ import * as vscode from 'vscode'
 
 import { CommitComposerProvider } from './commit/commit-composer-provider'
 import { DifftaleGitController } from './git/difftale-git-controller'
+import { watchGitRepositories } from './git/git-source-control'
 import { PullRequestComposerProvider } from './pull-request/pull-request-composer-provider'
 import { CurrentFileHistoryProvider } from './sidebar/current-file-history-provider'
 import { GitOperationStatusProvider } from './sidebar/git-operation-status-provider'
@@ -16,8 +17,11 @@ import {
 } from './constants'
 import { FileHistoryController } from './file-history-controller'
 import { RevisionContentProvider } from './revision-content-provider'
+import type { FileHistoryActionTarget } from './types'
 
-export const activate = (extensionContext: vscode.ExtensionContext): void => {
+export const activate = async (
+  extensionContext: vscode.ExtensionContext,
+): Promise<void> => {
   const repository = new GitRepository()
   const revisionContentProvider = new RevisionContentProvider(repository)
   const commitMessageController = new CommitMessageController(repository)
@@ -59,6 +63,16 @@ export const activate = (extensionContext: vscode.ExtensionContext): void => {
     repository,
   })
 
+  const gitRepositoryWatcher = await watchGitRepositories(() => {
+    commitComposerProvider.refresh().catch((error: unknown) => error)
+
+    pullRequestComposerProvider.refresh().catch((error: unknown) => error)
+
+    currentFileHistoryProvider.refresh()
+
+    quickActionsProvider.refresh()
+  })
+
   extensionContext.subscriptions.push(
     vscode.workspace.registerTextDocumentContentProvider(
       REVISION_SCHEME,
@@ -93,6 +107,23 @@ export const activate = (extensionContext: vscode.ExtensionContext): void => {
     vscode.commands.registerCommand(
       'difftale.openFileRevision',
       fileHistoryController.openAtIndex,
+    ),
+    vscode.commands.registerCommand(
+      'difftale.copyRevisionHash',
+      (target?: FileHistoryActionTarget) =>
+        target?.revisionHash
+          ? fileHistoryController.copyRevisionHash(target.revisionHash)
+          : undefined,
+    ),
+    vscode.commands.registerCommand(
+      'difftale.openRevisionOnRemote',
+      (target?: FileHistoryActionTarget) =>
+        target?.revisionHash
+          ? fileHistoryController.openRevisionOnRemote(
+              target.absoluteFilePath,
+              target.revisionHash,
+            )
+          : undefined,
     ),
     vscode.commands.registerCommand(
       'difftale.commit',
@@ -153,5 +184,6 @@ export const activate = (extensionContext: vscode.ExtensionContext): void => {
     gitOperationStatusProvider,
     quickActionsProvider,
     gitOutputChannel,
+    gitRepositoryWatcher,
   )
 }

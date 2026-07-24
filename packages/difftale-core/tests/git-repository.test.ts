@@ -59,6 +59,22 @@ describe('GitRepository', () => {
     await expect(repository.getPullRequestDiff(repositoryPath, 'main')).resolves.toContain(
       'export const enabled = true',
     )
+    await expect(repository.getBranches(repositoryPath)).resolves.toEqual([
+      'feature/composer',
+      'main',
+    ])
+  })
+
+  test('returns the preferred remote URL', async () => {
+    const repositoryPath = createRepository()
+    runGit(repositoryPath, ['remote', 'add', 'backup', 'git@example.com:backup/repo.git'])
+    runGit(repositoryPath, ['remote', 'add', 'origin', 'git@example.com:owner/repo.git'])
+
+    const repository = new GitRepository()
+
+    await expect(repository.getRemoteUrl(repositoryPath)).resolves.toBe(
+      'git@example.com:owner/repo.git',
+    )
   })
 
   test('returns staged changes and recent subjects', async () => {

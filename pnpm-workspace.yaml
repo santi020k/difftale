@@ -5,6 +5,7 @@ allowBuilds:
   esbuild: true
 catalog:
   "@astrojs/check": ^0.9.9
+  "@astrojs/sitemap": ^3.7.3
   "@changesets/changelog-github": ^0.7.0
   "@changesets/cli": ^2.31.0
   "@santi020k/eslint-config-basic": 2.1.1

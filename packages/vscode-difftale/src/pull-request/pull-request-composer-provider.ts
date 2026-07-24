@@ -1,3 +1,5 @@
+import { basename } from 'node:path'
+
 import {
   type GitRepository,
   validateConventionalCommit,
@@ -8,6 +10,7 @@ import * as vscode from 'vscode'
 import { fitPullRequestPrompt } from '../ai/fit-pull-request-prompt'
 import { parsePullRequestDraft } from '../ai/parse-pull-request-draft'
 import { PULL_REQUEST_DRAFT_STORAGE_KEY } from '../constants'
+import { getGitRepositoryPaths } from '../git/git-source-control'
 import { resolveRepositoryPath } from '../repository-resolver'
 import type {
   PullRequestDraft,
@@ -15,6 +18,7 @@ import type {
 } from '../types'
 import { createNonce } from '../utils/create-nonce'
 import { getCommitGenerationSettings } from '../utils/get-commit-generation-settings'
+import { getRepositoryStorageKey } from '../utils/get-repository-storage-key'
 import { getString } from '../utils/get-string'
 import { isRecord } from '../utils/is-record'
 
@@ -28,6 +32,7 @@ interface PullRequestComposerProviderOptions {
 }
 
 interface PullRequestComposerMessage {
+  baseBranch?: string
   description?: string
   title?: string
   type: string
@@ -50,6 +55,7 @@ const parseMessage = (value: unknown): PullRequestComposerMessage | undefined =>
   }
 
   return {
+    baseBranch: getString(value, 'baseBranch'),
     description: getString(value, 'description'),
     title: getString(value, 'title'),
     type,
@@ -71,6 +77,16 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
   readonly #outputChannel: vscode.OutputChannel
   readonly #repository: GitRepository
   readonly #pullRequestService = new GitHubPullRequestService()
+  #activeBranchContext:
+    | {
+        baseBranch: string
+        currentBranch: string
+        repositoryPath: string
+      }
+    | undefined
+
+  #selectedBaseBranch: string | undefined
+  #selectedRepositoryPath: string | undefined
   #view: vscode.WebviewView | undefined
 
   public constructor(options: PullRequestComposerProviderOptions) {
@@ -95,6 +111,12 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
     )
 
     webviewView.webview.onDidReceiveMessage(value => this.#handleMessage(value))
+  }
+
+  public refresh = async (): Promise<void> => {
+    if (this.#view?.visible) {
+      await this.#sendBranchStatus()
+    }
   }
 
   async #handleMessage(value: unknown): Promise<void> {
@@ -126,18 +148,34 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
 
   async #handleViewMessage(message: PullRequestComposerMessage): Promise<boolean> {
     if (message.type === 'ready') {
-      await this.#sendDraft(this.#getDraft())
-
       await this.#sendBranchStatus()
 
       return true
     }
 
     if (message.type === 'draftChanged') {
+      const context =
+        this.#activeBranchContext ??
+        (await this.#getBranchContext())
+
+      if (!context) return true
+
       await this.#saveDraft({
         description: message.description ?? '',
         title: message.title ?? '',
-      })
+      }, context.repositoryPath, context.currentBranch)
+
+      return true
+    }
+
+    if (message.type === 'selectRepository') {
+      await this.#selectRepository()
+
+      return true
+    }
+
+    if (message.type === 'selectBaseBranch') {
+      await this.#selectBaseBranch()
 
       return true
     }
@@ -151,17 +189,47 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
     return false
   }
 
-  #getDraft(): PullRequestDraft {
-    return (
+  async #loadDraft(
+    repositoryPath: string,
+    branch: string,
+  ): Promise<PullRequestDraft> {
+    const storageKey = getRepositoryStorageKey(
+      PULL_REQUEST_DRAFT_STORAGE_KEY,
+      repositoryPath,
+      branch,
+    )
+
+    const draft =
+      this.#extensionContext.workspaceState.get<PullRequestDraft>(storageKey)
+
+    if (draft) return draft
+
+    const legacyDraft =
       this.#extensionContext.workspaceState.get<PullRequestDraft>(
         PULL_REQUEST_DRAFT_STORAGE_KEY,
-      ) ?? EMPTY_DRAFT
-    )
-  }
+      )
 
-  async #saveDraft(draft: PullRequestDraft): Promise<void> {
+    if (!legacyDraft) return EMPTY_DRAFT
+
+    await this.#extensionContext.workspaceState.update(storageKey, legacyDraft)
+
+    const clearedLegacyDraft = undefined
+
     await this.#extensionContext.workspaceState.update(
       PULL_REQUEST_DRAFT_STORAGE_KEY,
+      clearedLegacyDraft,
+    )
+
+    return legacyDraft
+  }
+
+  async #saveDraft(
+    draft: PullRequestDraft,
+    repositoryPath: string,
+    branch: string,
+  ): Promise<void> {
+    await this.#extensionContext.workspaceState.update(
+      getRepositoryStorageKey(PULL_REQUEST_DRAFT_STORAGE_KEY, repositoryPath, branch),
       draft,
     )
   }
@@ -185,10 +253,16 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
     await this.#view?.webview.postMessage({ type: 'busy', value })
   }
 
-  async #getContext(): Promise<
-    { generation: PullRequestGenerationContext; repositoryPath: string } | undefined
+  async #getBranchContext(): Promise<
+    {
+      baseBranch: string
+      currentBranch: string
+      repositoryPath: string
+    } | undefined
   > {
-    const repositoryPath = await resolveRepositoryPath(this.#repository)
+    const repositoryPath =
+      this.#selectedRepositoryPath ??
+      (await resolveRepositoryPath(this.#repository))
 
     if (!repositoryPath) {
       await vscode.window.showErrorMessage('Difftale could not find a Git repository.')
@@ -197,7 +271,26 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
     }
 
     const currentBranch = await this.#repository.getCurrentBranch(repositoryPath)
-    const baseBranch = await this.#repository.getDefaultBaseBranch(repositoryPath)
+
+    const baseBranch =
+      this.#selectedBaseBranch ??
+      (await this.#repository.getDefaultBaseBranch(repositoryPath))
+
+    const context = { baseBranch, currentBranch, repositoryPath }
+
+    this.#activeBranchContext = context
+
+    return context
+  }
+
+  async #getContext(): Promise<
+    { generation: PullRequestGenerationContext; repositoryPath: string } | undefined
+  > {
+    const branchContext = await this.#getBranchContext()
+
+    if (!branchContext) return undefined
+
+    const { baseBranch, currentBranch, repositoryPath } = branchContext
 
     const [commitSubjects, diff] = await Promise.all([
       this.#repository.getCommitSubjectsBetween(repositoryPath, baseBranch),
@@ -215,32 +308,97 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  async #selectRepository(): Promise<void> {
+    const repositoryPaths = await getGitRepositoryPaths()
+
+    if (repositoryPaths.length === 0) {
+      await this.#sendStatus('Difftale could not find a Git repository.', 'error')
+
+      return
+    }
+
+    const selection = await vscode.window.showQuickPick(
+      repositoryPaths.map(repositoryPath => ({
+        description: repositoryPath,
+        label: basename(repositoryPath),
+        repositoryPath,
+      })),
+      {
+        placeHolder: 'Choose the repository used by Difftale composers',
+        title: 'Difftale: Select Repository',
+      },
+    )
+
+    if (!selection) return
+
+    this.#selectedRepositoryPath = selection.repositoryPath
+
+    this.#selectedBaseBranch = undefined
+
+    this.#activeBranchContext = undefined
+
+    await this.#sendBranchStatus()
+  }
+
+  async #selectBaseBranch(): Promise<void> {
+    const context = await this.#getBranchContext()
+
+    if (!context) return
+
+    const branches = await this.#repository.getBranches(context.repositoryPath)
+
+    const selection = await vscode.window.showQuickPick(
+      branches.map(branch => ({
+        description: branch === context.baseBranch ? 'Current base' : undefined,
+        label: branch,
+      })),
+      {
+        placeHolder: 'Choose the branch to compare against',
+        title: 'Difftale: Select Pull Request Base',
+      },
+    )
+
+    if (!selection) return
+
+    this.#selectedBaseBranch = selection.label
+
+    this.#activeBranchContext = undefined
+
+    await this.#sendBranchStatus()
+  }
+
   async #sendBranchStatus(): Promise<void> {
     try {
-      const context = await this.#getContext()
+      const context = await this.#getBranchContext()
 
       if (context) {
         const settings = getCommitGenerationSettings()
 
-        const normalizedBaseBranch = context.generation.baseBranch.replace(
+        const normalizedBaseBranch = context.baseBranch.replace(
           /^origin\//,
           '',
         )
 
         await this.#view?.webview.postMessage({
-          baseBranch: context.generation.baseBranch,
+          baseBranch: context.baseBranch,
           canCreatePullRequest:
-            context.generation.currentBranch !== normalizedBaseBranch,
-          currentBranch: context.generation.currentBranch,
+            context.currentBranch !== normalizedBaseBranch,
+          currentBranch: context.currentBranch,
           maximumHeaderLengthCharacters: settings.maximumHeaderLengthCharacters,
+          repositoryName: basename(context.repositoryPath),
+          repositoryPath: context.repositoryPath,
           type: 'context',
         })
 
+        await this.#sendDraft(
+          await this.#loadDraft(context.repositoryPath, context.currentBranch),
+        )
+
         await this.#sendStatus(
-          context.generation.currentBranch === normalizedBaseBranch
+          context.currentBranch === normalizedBaseBranch
             ? 'Create a feature branch before opening a pull request.'
             : 'Ready to draft from the current branch.',
-          context.generation.currentBranch === normalizedBaseBranch ? 'warning' : 'info',
+          context.currentBranch === normalizedBaseBranch ? 'warning' : 'info',
         )
       }
     } catch (error) {
@@ -338,7 +496,11 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
             return
           }
 
-          await this.#saveDraft(draft)
+          await this.#saveDraft(
+            draft,
+            context.repositoryPath,
+            context.generation.currentBranch,
+          )
 
           await this.#sendDraft(draft)
 

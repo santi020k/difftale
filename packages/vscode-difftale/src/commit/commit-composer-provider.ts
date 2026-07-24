@@ -1,4 +1,12 @@
 import {
+  basename,
+  isAbsolute,
+  relative,
+  resolve,
+  sep as pathSeparator,
+} from 'node:path'
+
+import {
   formatConventionalCommit,
   type GitRepository,
   validateConventionalCommit,
@@ -9,10 +17,9 @@ import * as vscode from 'vscode'
 import { fitCommitPrompt } from '../ai/fit-commit-prompt'
 import { parseAiDrafts } from '../ai/parse-ai-drafts'
 import { getCommitProjectContext } from '../commit-project-context'
-import {
-  COMMIT_DRAFT_STORAGE_KEY,
-  COMMIT_STATUS_REFRESH_INTERVAL_MILLISECONDS,
-} from '../constants'
+import { COMMIT_DRAFT_STORAGE_KEY } from '../constants'
+import { createFallbackCommit } from '../fallback-commit'
+import { getGitRepositoryPaths } from '../git/git-source-control'
 import { resolveRepositoryPath } from '../repository-resolver'
 import type {
   CommitDraft,
@@ -21,6 +28,7 @@ import type {
 } from '../types'
 import { createNonce } from '../utils/create-nonce'
 import { getCommitGenerationSettings } from '../utils/get-commit-generation-settings'
+import { getRepositoryStorageKey } from '../utils/get-repository-storage-key'
 import { getString } from '../utils/get-string'
 import { isRecord } from '../utils/is-record'
 
@@ -34,9 +42,16 @@ interface CommitComposerProviderOptions {
 
 interface CommitComposerMessage {
   description?: string
+  path?: string
   paths?: string[]
   title?: string
   type: string
+}
+
+interface GeneratedCommitDrafts {
+  drafts: CommitDraft[]
+  source: 'ai' | 'local'
+  truncated: boolean
 }
 
 const EMPTY_DRAFT: CommitDraft = { description: '', title: '' }
@@ -47,8 +62,9 @@ const parseMessage = (value: unknown): CommitComposerMessage | undefined => {
   const type = getString(value, 'type')
 
   return type
-    ? {
+      ? {
         description: getString(value, 'description'),
+        path: getString(value, 'path'),
         paths: Array.isArray(value.paths)
           ? value.paths.filter(filePath => typeof filePath === 'string')
           : undefined,
@@ -62,7 +78,12 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
   readonly #commit: CommitComposerProviderOptions['commit']
   readonly #extensionContext: vscode.ExtensionContext
   readonly #repository: GitRepository
+  #activeRepositoryContext:
+    | { branch: string; repositoryPath: string }
+    | undefined
+
   #failure: GitFailurePresentation | undefined
+  #selectedRepositoryPath: string | undefined
   #view: vscode.WebviewView | undefined
 
   public constructor(options: CommitComposerProviderOptions) {
@@ -81,10 +102,15 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
     view.webview.html = getCommitComposerHtml(
       view.webview.cspSource,
       createNonce(),
-      COMMIT_STATUS_REFRESH_INTERVAL_MILLISECONDS,
     )
 
     view.webview.onDidReceiveMessage(value => this.#handleMessage(value))
+  }
+
+  public refresh = async (): Promise<void> => {
+    if (this.#view?.visible) {
+      await this.#refresh()
+    }
   }
 
   async #handleMessage(value: unknown): Promise<void> {
@@ -105,6 +131,12 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
   }
 
   async #handleUtilityAction(message: CommitComposerMessage): Promise<boolean> {
+    if (message.type === 'openFile') {
+      await this.#openFile(message.path)
+
+      return true
+    }
+
     if (message.type === 'showGitOutput') {
       await vscode.commands.executeCommand('difftale.showGitOutput')
 
@@ -126,22 +158,44 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
     return false
   }
 
+  async #openFile(filePath: string | undefined): Promise<void> {
+    if (!filePath) return
+
+    const context = await this.#getRepositoryContext()
+
+    if (!context) return
+
+    const { repositoryPath } = context
+    const absoluteFilePath = resolve(repositoryPath, filePath)
+    const relativeFilePath = relative(repositoryPath, absoluteFilePath)
+
+    if (
+      !relativeFilePath ||
+      relativeFilePath === '..' ||
+      relativeFilePath.startsWith(`..${pathSeparator}`) ||
+      isAbsolute(relativeFilePath)
+    ) {
+      await this.#status('Difftale could not open that file.', 'error')
+
+      return
+    }
+
+    try {
+      await vscode.window.showTextDocument(vscode.Uri.file(absoluteFilePath), {
+        preview: true,
+      })
+    } catch {
+      await this.#status('That file no longer exists in the working tree.', 'warning')
+    }
+  }
+
   async #handleComposerAction(message: CommitComposerMessage): Promise<boolean> {
     if (await this.#handleStagingAction(message)) return true
 
+    if (await this.#handleDraftAction(message)) return true
+
     if (message.type === 'ready') {
-      await this.#sendDraft(this.#getDraft())
-
       await this.#refresh(true)
-
-      return true
-    }
-
-    if (message.type === 'draftChanged') {
-      await this.#saveDraft({
-        description: message.description ?? '',
-        title: message.title ?? '',
-      })
 
       return true
     }
@@ -154,6 +208,35 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
 
     if (message.type === 'generate') {
       await this.#generate()
+
+      return true
+    }
+
+    return false
+  }
+
+  async #handleDraftAction(message: CommitComposerMessage): Promise<boolean> {
+    if (message.type === 'draftChanged') {
+      const context =
+        this.#activeRepositoryContext ??
+        (await this.#getRepositoryContext())
+
+      if (!context) return true
+
+      const draft = {
+        description: message.description ?? '',
+        title: message.title ?? '',
+      }
+
+      await this.#sendValidation(draft)
+
+      await this.#saveDraft(draft, context.repositoryPath, context.branch)
+
+      return true
+    }
+
+    if (message.type === 'selectRepository') {
+      await this.#selectRepository()
 
       return true
     }
@@ -177,16 +260,48 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
     return false
   }
 
-  #getDraft(): CommitDraft {
-    return (
+  async #loadDraft(
+    repositoryPath: string,
+    branch: string,
+  ): Promise<CommitDraft> {
+    const storageKey = getRepositoryStorageKey(
+      COMMIT_DRAFT_STORAGE_KEY,
+      repositoryPath,
+      branch,
+    )
+
+    const draft = this.#extensionContext.workspaceState.get<CommitDraft>(storageKey)
+
+    if (draft) return draft
+
+    const legacyDraft =
       this.#extensionContext.workspaceState.get<CommitDraft>(
         COMMIT_DRAFT_STORAGE_KEY,
-      ) ?? EMPTY_DRAFT
+      )
+
+    if (!legacyDraft) return EMPTY_DRAFT
+
+    await this.#extensionContext.workspaceState.update(storageKey, legacyDraft)
+
+    const clearedLegacyDraft = undefined
+
+    await this.#extensionContext.workspaceState.update(
+      COMMIT_DRAFT_STORAGE_KEY,
+      clearedLegacyDraft,
     )
+
+    return legacyDraft
   }
 
-  async #saveDraft(draft: CommitDraft): Promise<void> {
-    await this.#extensionContext.workspaceState.update(COMMIT_DRAFT_STORAGE_KEY, draft)
+  async #saveDraft(
+    draft: CommitDraft,
+    repositoryPath: string,
+    branch: string,
+  ): Promise<void> {
+    await this.#extensionContext.workspaceState.update(
+      getRepositoryStorageKey(COMMIT_DRAFT_STORAGE_KEY, repositoryPath, branch),
+      draft,
+    )
   }
 
   async #post(message: Record<string, unknown>): Promise<void> {
@@ -195,6 +310,24 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
 
   async #sendDraft(draft: CommitDraft): Promise<void> {
     await this.#post({ ...draft, type: 'draft' })
+  }
+
+  async #sendValidation(draft: CommitDraft): Promise<void> {
+    const message = [draft.title.trim(), draft.description.trim()]
+      .filter(Boolean)
+      .join('\n\n')
+
+    const validation = draft.title.trim()
+      ? validateConventionalCommit(message, getCommitGenerationSettings())
+      : { errors: [], valid: false }
+
+    await this.#post({
+      description: draft.description,
+      errors: validation.errors,
+      title: draft.title,
+      type: 'validation',
+      valid: validation.valid,
+    })
   }
 
   async #copyFailure(): Promise<void> {
@@ -219,20 +352,63 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
     await this.#post({ kind, text, type: 'status' })
   }
 
-  async #getRepositoryPath(): Promise<string | undefined> {
-    const repositoryPath = await resolveRepositoryPath(this.#repository)
+  async #getRepositoryContext(): Promise<
+    { branch: string; repositoryPath: string } | undefined
+  > {
+    const repositoryPath =
+      this.#selectedRepositoryPath ??
+      (await resolveRepositoryPath(this.#repository))
 
     if (!repositoryPath) {
       await this.#status('Difftale could not find a Git repository.', 'error')
+
+      return undefined
     }
 
-    return repositoryPath
+    const branchSyncStatus = await this.#repository.getBranchSyncStatus(repositoryPath)
+    const context = { branch: branchSyncStatus.branch, repositoryPath }
+
+    this.#activeRepositoryContext = context
+
+    return context
+  }
+
+  async #selectRepository(): Promise<void> {
+    const repositoryPaths = await getGitRepositoryPaths()
+
+    if (repositoryPaths.length === 0) {
+      await this.#status('Difftale could not find a Git repository.', 'error')
+
+      return
+    }
+
+    const selection = await vscode.window.showQuickPick(
+      repositoryPaths.map(repositoryPath => ({
+        description: repositoryPath,
+        label: basename(repositoryPath),
+        repositoryPath,
+      })),
+      {
+        placeHolder: 'Choose the repository used by Difftale composers',
+        title: 'Difftale: Select Repository',
+      },
+    )
+
+    if (!selection) return
+
+    this.#selectedRepositoryPath = selection.repositoryPath
+
+    this.#activeRepositoryContext = undefined
+
+    await this.#refresh(true)
   }
 
   async #refresh(announce = false): Promise<void> {
-    const repositoryPath = await this.#getRepositoryPath()
+    const context = await this.#getRepositoryContext()
 
-    if (!repositoryPath) return
+    if (!context) return
+
+    const { branch, repositoryPath } = context
 
     const [stagedFilePaths, unstagedFilePaths, branchSyncStatus] = await Promise.all([
       this.#repository.getStagedFilePaths(repositoryPath),
@@ -245,17 +421,25 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
     await this.#post({
       ...branchSyncStatus,
       maximumHeaderLengthCharacters: settings.maximumHeaderLengthCharacters,
+      repositoryName: basename(repositoryPath),
+      repositoryPath,
       stagedCount: stagedFilePaths.length,
       stagedFilePaths,
       type: 'context',
       unstagedFilePaths,
     })
 
+    const draft = await this.#loadDraft(repositoryPath, branch)
+
+    await this.#sendDraft(draft)
+
+    await this.#sendValidation(draft)
+
     if (announce) {
       await this.#status(
         stagedFilePaths.length > 0
           ? 'Ready to generate or commit the staged changes.'
-          : 'Choose changes below to include in the commit.',
+          : 'Stage a file with +, or select Stage all, to include changes in the commit.',
         stagedFilePaths.length > 0 ? 'success' : 'info',
       )
     }
@@ -279,9 +463,11 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
   ): Promise<void> {
     if (filePaths.length === 0) return
 
-    const repositoryPath = await this.#getRepositoryPath()
+    const context = await this.#getRepositoryContext()
 
-    if (!repositoryPath) return
+    if (!context) return
+
+    const { repositoryPath } = context
 
     await this.#post({ type: 'busy', value: true })
 
@@ -311,9 +497,11 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
   }
 
   async #generate(): Promise<void> {
-    const repositoryPath = await this.#getRepositoryPath()
+    const context = await this.#getRepositoryContext()
 
-    if (!repositoryPath) return
+    if (!context) return
+
+    const { branch, repositoryPath } = context
 
     await this.#post({ type: 'busy', value: true })
 
@@ -328,15 +516,24 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
         return
       }
 
-      const draft = await this.#requestDraft(repositoryPath, diff)
+      const generatedDrafts = await this.#requestDrafts(repositoryPath, diff)
+      const draft = generatedDrafts.drafts[0] ?? EMPTY_DRAFT
 
-      if (!draft) return
+      await this.#saveDraft(draft, repositoryPath, branch)
 
-      await this.#saveDraft(draft)
+      await this.#post({
+        drafts: generatedDrafts.drafts,
+        type: 'draftOptions',
+      })
 
-      await this.#sendDraft(draft)
-
-      await this.#status('Commit draft generated from staged changes.', 'success')
+      await this.#status(
+        generatedDrafts.source === 'ai'
+          ? `${generatedDrafts.drafts.length} commit ${
+              generatedDrafts.drafts.length === 1 ? 'draft' : 'drafts'
+            } generated${generatedDrafts.truncated ? ' from a model-sized portion of the diff' : ''}.`
+          : 'Local commit draft generated because AI generation was unavailable.',
+        generatedDrafts.source === 'ai' ? 'success' : 'warning',
+      )
     } catch (error) {
       await this.#status(
         error instanceof Error ? error.message : 'Commit generation failed.',
@@ -347,24 +544,26 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  async #requestDraft(
+  async #requestDrafts(
     repositoryPath: string,
     diff: string,
-  ): Promise<CommitDraft | undefined> {
-    const baseSettings = getCommitGenerationSettings()
-    const settings = { ...baseSettings, draftCount: 1 }
+  ): Promise<GeneratedCommitDrafts> {
+    const settings = getCommitGenerationSettings()
+    let models: readonly vscode.LanguageModelChat[]
 
-    const models = await vscode.lm.selectChatModels({
-      family: settings.modelFamily,
-      vendor: 'copilot',
-    })
+    try {
+      models = await vscode.lm.selectChatModels({
+        family: settings.modelFamily,
+        vendor: 'copilot',
+      })
+    } catch {
+      return await this.#createFallbackDraft(repositoryPath)
+    }
 
     const model = models[0]
 
     if (!model) {
-      await this.#status('No VS Code language model is available.', 'error')
-
-      return undefined
+      return this.#createFallbackDraft(repositoryPath)
     }
 
     const cancellationTokenSource = new vscode.CancellationTokenSource()
@@ -390,29 +589,66 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
 
       for await (const fragment of response.text) responseText += fragment
 
-      const commit = parseAiDrafts(responseText)[0]
-      const message = commit ? formatConventionalCommit(commit) : ''
+      const drafts = parseAiDrafts(responseText).flatMap(commit => {
+        const message = formatConventionalCommit(commit)
 
-      if (!commit || !validateConventionalCommit(message, settings).valid) {
-        await this.#status('The model returned an invalid commit draft.', 'error')
+        return validateConventionalCommit(message, settings).valid
+          ? [{
+              description: commit.body ?? '',
+              title: message.split('\n')[0] ?? '',
+            }]
+          : []
+      })
 
-        return undefined
+      if (drafts.length === 0) {
+        return await this.#createFallbackDraft(repositoryPath)
       }
 
       return {
-        description: commit.body ?? '',
-        title: message.split('\n')[0] ?? '',
+        drafts,
+        source: 'ai',
+        truncated: diff.length > settings.maximumDiffLengthCharacters ||
+          !prompt.includes(diff),
       }
+    } catch {
+      return await this.#createFallbackDraft(repositoryPath)
     } finally {
       cancellationTokenSource.dispose()
     }
   }
 
+  async #createFallbackDraft(
+    repositoryPath: string,
+  ): Promise<GeneratedCommitDrafts> {
+    const commit = createFallbackCommit(
+      await this.#repository.getStagedFilePaths(repositoryPath),
+    )
+
+    const settings = getCommitGenerationSettings()
+    let message = formatConventionalCommit(commit)
+
+    if (!validateConventionalCommit(message, settings).valid) {
+      commit.type = settings.allowedTypes[0] ?? commit.type
+
+      message = formatConventionalCommit(commit)
+    }
+
+    return {
+      drafts: [{
+        description: commit.body ?? '',
+        title: message.split('\n')[0] ?? '',
+      }],
+      source: 'local',
+      truncated: false,
+    }
+  }
+
   async #commitDraft(draft: CommitDraft): Promise<void> {
-    const repositoryPath = await this.#getRepositoryPath()
+    const context = await this.#getRepositoryContext()
 
-    if (!repositoryPath) return
+    if (!context) return
 
+    const { branch, repositoryPath } = context
     const message = [draft.title, draft.description].filter(Boolean).join('\n\n')
 
     await this.#post({ type: 'busy', value: true })
@@ -425,7 +661,7 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
       const result = await this.#commit(repositoryPath, message)
 
       if (result.succeeded) {
-        await this.#saveDraft(EMPTY_DRAFT)
+        await this.#saveDraft(EMPTY_DRAFT, repositoryPath, branch)
 
         await this.#sendDraft(EMPTY_DRAFT)
 

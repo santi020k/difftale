@@ -3,6 +3,7 @@ import {
   PROMPT_BUDGET_SEARCH_ITERATION_LIMIT_COUNT,
 } from '../constants'
 import type { CommitGenerationSettings, CommitProjectContext } from '../types'
+import { fitDiffToCharacterLimit } from '../utils/fit-diff-to-character-limit'
 
 import { buildCommitPrompt } from './build-commit-prompt'
 
@@ -46,7 +47,7 @@ export const fitCommitPrompt = async ({
 
     const candidatePrompt = buildCommitPrompt({
       context,
-      diff: diff.slice(0, candidateLengthCharacters),
+      diff: fitDiffToCharacterLimit(diff, candidateLengthCharacters),
       settings,
     })
 

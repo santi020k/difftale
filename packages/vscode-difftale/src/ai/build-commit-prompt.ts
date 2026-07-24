@@ -1,4 +1,8 @@
 import type { CommitGenerationSettings, CommitProjectContext } from '../types'
+import {
+  fitDiffToCharacterLimit,
+  getDiffFilePaths,
+} from '../utils/fit-diff-to-character-limit'
 
 interface BuildCommitPromptOptions {
   context: CommitProjectContext
@@ -11,7 +15,12 @@ export const buildCommitPrompt = ({
   diff,
   settings,
 }: BuildCommitPromptOptions): string => {
-  const truncatedDiff = diff.slice(0, settings.maximumDiffLengthCharacters)
+  const truncatedDiff = fitDiffToCharacterLimit(
+    diff,
+    settings.maximumDiffLengthCharacters,
+  )
+
+  const changedFilePaths = getDiffFilePaths(diff)
 
   const customInstructions =
     settings.customInstructions.length > 0
@@ -35,6 +44,8 @@ export const buildCommitPrompt = ({
     context.recentSubjects.join('\n') || 'none',
     'Additional instructions:',
     customInstructions,
+    'Changed files:',
+    changedFilePaths.join('\n') || 'none',
     'Staged diff:',
     truncatedDiff,
   ].join('\n\n')

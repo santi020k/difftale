@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- Scope commit and pull request drafts to the selected repository and branch.
+- Add explicit repository selection to both composers and selectable pull
+  request base branches.
+- Show multiple generated commit alternatives in the Commit Composer.
+- Fall back to a local commit draft when AI generation is unavailable or
+  invalid.
+- Validate Conventional Commit drafts while they are edited.
+- Preserve changed-file coverage when fitting large diffs to a model.
+- Refresh composer state from Git events instead of polling.
+- Add copy-hash and open-on-remote actions to committed file revisions.
+
 ## 0.8.0
 
 - Replace the disabled empty composer with clean, outgoing, behind, and
