@@ -42,6 +42,14 @@ const getRunningMessage = (kind: 'commit' | 'push', hooks: readonly GitHook[]): 
     : `Running git ${kind}`
 }
 
+const requestGitCredential = async (prompt: string): Promise<string | undefined> =>
+  vscode.window.showInputBox({
+    ignoreFocusOut: true,
+    password: /passphrase|password/iu.test(prompt),
+    prompt: prompt.trim() || 'Enter the credential requested by Git.',
+    title: 'Difftale Git authentication',
+  })
+
 const getResultSummary = (
   operationLabel: string,
   result: GitOperationResult,
@@ -249,6 +257,9 @@ export class DifftaleGitController {
             {
               abortSignal: abortController.signal,
               onOutput: output => { this.#outputChannel.append(output); },
+              onPrompt: kind === 'push'
+                ? requestGitCredential
+                : undefined,
             },
           )
         } catch (error) {

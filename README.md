@@ -147,7 +147,7 @@ package owns user interaction and bundles the core.
 
 ### Prerequisites
 
-- Node.js `22.22.3`, `24.16.0`, or `26.3.0` and newer
+- Node.js `^22.22.3`, `^24.16.0`, or `>=26.3.0`
 - pnpm `10.34.3`
 
 ### Setup

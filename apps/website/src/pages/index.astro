@@ -1,0 +1,391 @@
+---
+import {
+  Accordion,
+  Badge,
+  ButtonLink,
+  Card,
+  Code,
+  Icon,
+  RevealGroup,
+  ScrollReveal
+} from '@santi020k/lumen-astro'
+
+import BaseLayout from '../layouts/base-layout.astro'
+
+const repositoryUrl = 'https://github.com/santi020k/difftale'
+
+const features = [
+  {
+    icon: 'wand-sparkles',
+    eyebrow: 'Commit Composer',
+    title: 'A message worth keeping',
+    description:
+      'Turn staged changes into editable Conventional Commit drafts, validated before they ever reach Git.'
+  },
+  {
+    icon: 'history',
+    eyebrow: 'File History',
+    title: 'Move through one file’s story',
+    description:
+      'Step to older or newer revisions in a reusable diff editor, including history across file renames.'
+  },
+  {
+    icon: 'shield-check',
+    eyebrow: 'Git Operations',
+    title: 'Explicit all the way down',
+    description:
+      'Commit and push only when you ask. See progress, hook detection, output, and durable results in one place.'
+  },
+  {
+    icon: 'git-pull-request',
+    eyebrow: 'Pull Request Composer',
+    title: 'Carry the context forward',
+    description:
+      'Draft a title and Markdown description from the current branch, then copy it or create the PR explicitly.'
+  }
+]
+
+const steps = [
+  {
+    number: '01',
+    title: 'Stage with intent',
+    description: 'Use the Source Control workflow you already know. Difftale never stages files for you.'
+  },
+  {
+    number: '02',
+    title: 'Craft the tale',
+    description: 'Generate alternatives with a VS Code language model or compose the message manually.'
+  },
+  {
+    number: '03',
+    title: 'Review every word',
+    description: 'Edit the title and body, then let Difftale validate the Conventional Commit contract.'
+  },
+  {
+    number: '04',
+    title: 'Commit with clarity',
+    description: 'Run the real Git command, keep hooks intact, and follow the complete output.'
+  }
+]
+
+const commitExample = `feat(history): keep revision navigation stable across renames
+
+Resolve each revision with the path recorded at that commit so moving
+backward and forward continues to work after a file is renamed.
+
+Preserve the working tree as the newest revision when local changes exist.`
+---
+
+<BaseLayout
+  description="Difftale helps you craft clear Conventional Commits, navigate file history, and run explicit Git workflows without leaving VS Code."
+  title="Difftale — Make every change tell a better story"
+>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand-lockup" href="/" aria-label="Difftale home">
+        <span class="brand-mark" aria-hidden="true">
+          <Icon name="git-branch-plus" decorative />
+        </span>
+        <span>Difftale</span>
+      </a>
+
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="#workflow">Workflow</a>
+        <a href="#principles">Principles</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+
+      <ButtonLink href={repositoryUrl} newTab variant="secondary">
+        <Icon name="github" decorative size="sm" />
+        View on GitHub
+      </ButtonLink>
+    </header>
+
+    <main id="main">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-glow" aria-hidden="true"></div>
+        <div class="hero-copy">
+          <Badge variant="outline" class="availability-badge">
+            <span class="status-dot" aria-hidden="true"></span>
+            In active development for VS Code
+          </Badge>
+          <h1 id="hero-title">
+            Make every change tell a
+            <em>better story.</em>
+          </h1>
+          <p class="hero-lede">
+            Difftale turns the space between
+            {' '}
+            <code>git diff</code>
+            {' '}
+            and
+            {' '}
+            <code>git push</code>
+            {' '}
+            into a
+            focused workflow for clear commits, useful pull requests, and effortless file history.
+          </p>
+          <div class="hero-actions">
+            <ButtonLink href={repositoryUrl} newTab showArrow>
+              Follow the project
+            </ButtonLink>
+            <ButtonLink href="#workflow" variant="ghost">
+              See how it works
+            </ButtonLink>
+          </div>
+          <p class="hero-note">
+            No external API key required when a VS Code language model is available.
+          </p>
+        </div>
+
+        <ScrollReveal animation="scale" class="product-stage">
+          <Card glass="strong" class="composer-window">
+            <div class="window-bar">
+              <div class="window-title">
+                <span class="window-icon"><Icon name="git-commit-horizontal" decorative size="sm" /></span>
+                <span>Commit Composer</span>
+              </div>
+              <Badge variant="success">3 staged</Badge>
+            </div>
+            <div class="composer-body">
+              <div class="field-preview">
+                <span class="preview-label">
+                  Title
+                  <span>58 / 72</span>
+                </span>
+                <span class="preview-input">feat(history): preserve navigation across file renames</span>
+              </div>
+              <div class="field-preview">
+                <span class="preview-label">
+                  Description
+                  <span>Optional</span>
+                </span>
+                <span class="preview-textarea">
+                  Resolve each revision with the path recorded at that commit, keeping the file’s
+                  history intact.
+                </span>
+              </div>
+              <div class="draft-row">
+                <button class="draft-chip is-selected" type="button" aria-pressed="true">Precise</button>
+                <button class="draft-chip" type="button" aria-pressed="false">Concise</button>
+                <button class="draft-chip" type="button" aria-pressed="false">Detailed</button>
+              </div>
+              <div class="composer-actions">
+                <span class="validation-message">
+                  <Icon name="circle-check" decorative size="sm" />
+                  Conventional Commit is valid
+                </span>
+                <span class="commit-button">
+                  <Icon name="git-commit-horizontal" decorative size="sm" />
+                  Commit
+                </span>
+              </div>
+            </div>
+          </Card>
+
+          <div class="history-rail" aria-hidden="true">
+            <div class="rail-line"></div>
+            <div class="history-event is-current">
+              <span class="history-node"></span>
+              <span>
+                <strong>Working tree</strong>
+                <small>just now</small>
+              </span>
+            </div>
+            <div class="history-event">
+              <span class="history-node"></span>
+              <span>
+                <strong>refactor(git)</strong>
+                <small>2 hours ago</small>
+              </span>
+            </div>
+            <div class="history-event">
+              <span class="history-node"></span>
+              <span>
+                <strong>feat(history)</strong>
+                <small>yesterday</small>
+              </span>
+            </div>
+          </div>
+        </ScrollReveal>
+      </section>
+
+      <section class="signal-strip" aria-label="Product principles">
+        <span>
+          <Icon name="pen-line" decorative size="sm" />
+          {' '}
+          Editable before use
+        </span>
+        <span>
+          <Icon name="key-round" decorative size="sm" />
+          {' '}
+          No external API key
+        </span>
+        <span>
+          <Icon name="mouse-pointer-click" decorative size="sm" />
+          {' '}
+          Explicit Git actions
+        </span>
+        <span>
+          <Icon name="terminal" decorative size="sm" />
+          {' '}
+          Complete hook output
+        </span>
+      </section>
+
+      <section class="section features-section" aria-labelledby="features-title">
+        <ScrollReveal animation="slide-up" class="section-heading">
+          <p class="eyebrow">One focused layer</p>
+          <h2 id="features-title">Your Git workflow, with the friction edited out.</h2>
+          <p>
+            Difftale doesn’t replace Source Control. It sharpens the moments where a broad Git
+            interface gets in your way.
+          </p>
+        </ScrollReveal>
+
+        <RevealGroup class="feature-grid" stagger={90}>
+          {features.map(feature => (
+            <Card as="article" class="feature-card" variant="muted">
+              <div class="feature-icon"><Icon name={feature.icon} decorative /></div>
+              <p class="card-eyebrow">{feature.eyebrow}</p>
+              <h3>{feature.title}</h3>
+              <p>{feature.description}</p>
+            </Card>
+          ))}
+        </RevealGroup>
+      </section>
+
+      <section id="workflow" class="section workflow-section" aria-labelledby="workflow-title">
+        <div class="workflow-copy">
+          <ScrollReveal animation="slide-up">
+            <p class="eyebrow">From diff to history</p>
+            <h2 id="workflow-title">A careful workflow that still feels fast.</h2>
+            <p class="section-lede">
+              AI helps with the first draft. You stay in control of the final message and every Git
+              operation.
+            </p>
+          </ScrollReveal>
+
+          <RevealGroup class="step-list" stagger={80}>
+            {steps.map(step => (
+              <article class="workflow-step">
+                <span class="step-number">{step.number}</span>
+                <div>
+                  <h3>{step.title}</h3>
+                  <p>{step.description}</p>
+                </div>
+              </article>
+            ))}
+          </RevealGroup>
+        </div>
+
+        <ScrollReveal animation="slide-up" class="commit-example">
+          <div class="code-intro">
+            <Badge variant="secondary">Validated output</Badge>
+            <span>conventional-commit.txt</span>
+          </div>
+          <Code
+            code={commitExample}
+            variant="block"
+            language="text"
+            label="A commit that explains why"
+            copy
+            theme="lumen"
+          />
+          <p class="code-caption">
+            Intent over inventory. Context that still makes sense six months later.
+          </p>
+        </ScrollReveal>
+      </section>
+
+      <section id="principles" class="section principles-section" aria-labelledby="principles-title">
+        <ScrollReveal animation="slide-up" class="section-heading compact-heading">
+          <p class="eyebrow">Designed around trust</p>
+          <h2 id="principles-title">Nothing important happens behind your back.</h2>
+        </ScrollReveal>
+
+        <RevealGroup class="principles-grid" stagger={100}>
+          <article>
+            <span class="principle-index">A</span>
+            <h3>Your code moves only when you say so.</h3>
+            <p>Difftale never stages, commits, pushes, restores, or rewrites files automatically.</p>
+          </article>
+          <article>
+            <span class="principle-index">B</span>
+            <h3>Generated text starts as a draft.</h3>
+            <p>Every commit message and pull request remains editable, reviewable, and yours.</p>
+          </article>
+          <article>
+            <span class="principle-index">C</span>
+            <h3>Git stays Git.</h3>
+            <p>Hooks run once through the real Git lifecycle, with complete output available.</p>
+          </article>
+        </RevealGroup>
+      </section>
+
+      <section id="faq" class="section faq-section" aria-labelledby="faq-title">
+        <div class="faq-heading">
+          <p class="eyebrow">The short version</p>
+          <h2 id="faq-title">A few things worth knowing.</h2>
+          <p>Difftale is still being shaped in public. The principles are already firm.</p>
+        </div>
+        <Accordion class="faq-list">
+          <details open>
+            <summary>Does Difftale send my source code to its own service?</summary>
+            <p>
+              No. Difftale has no hosted model service. Source is sent to a language model only
+              after you invoke generation and approve VS Code’s model-access consent.
+            </p>
+          </details>
+          <details>
+            <summary>Does it replace VS Code Source Control or GitLens?</summary>
+            <p>
+              No. Difftale adds a focused layer for composing commits and pull requests, moving
+              through one file’s revisions, and running explicit commit and push operations.
+            </p>
+          </details>
+          <details>
+            <summary>Can I write a commit without AI?</summary>
+            <p>
+              Yes. Manual Conventional Commit composition remains available, with the same
+              validation before the message is used.
+            </p>
+          </details>
+          <details>
+            <summary>Can it create a pull request for me?</summary>
+            <p>
+              Only when you explicitly ask. Difftale uses the authenticated GitHub CLI and never
+              pushes a branch automatically.
+            </p>
+          </details>
+        </Accordion>
+      </section>
+
+      <section class="final-cta" aria-labelledby="cta-title">
+        <div class="cta-mark" aria-hidden="true"><Icon name="git-branch-plus" decorative size="xl" /></div>
+        <div>
+          <p class="eyebrow">The project is taking shape</p>
+          <h2 id="cta-title">Follow the tale from the first commit.</h2>
+          <p>Watch the repository, read the code, and help shape a more thoughtful Git workflow.</p>
+        </div>
+        <ButtonLink href={repositoryUrl} newTab showArrow>
+          Explore Difftale
+        </ButtonLink>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a class="brand-lockup" href="/" aria-label="Difftale home">
+        <span class="brand-mark" aria-hidden="true">
+          <Icon name="git-branch-plus" decorative />
+        </span>
+        <span>Difftale</span>
+      </a>
+      <p>AI-crafted commits and effortless file history for VS Code.</p>
+      <div class="footer-links">
+        <a href={repositoryUrl} target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://lumen.santi020k.com" target="_blank" rel="noreferrer">Built with Lumen</a>
+      </div>
+    </footer>
+  </div>
+</BaseLayout>

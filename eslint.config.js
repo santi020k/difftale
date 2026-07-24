@@ -1,5 +1,6 @@
 import { defineConfig, Extension, Format, Preset, Runtime, Testing, Tool } from '@santi020k/eslint-config-basic'
 
+import eslintPluginAstro from 'eslint-plugin-astro'
 import tseslint from 'typescript-eslint'
 
 export default await defineConfig(
@@ -30,6 +31,12 @@ export default await defineConfig(
       },
     },
     workspacePrefixes: ['@santi020k'],
+  },
+  ...eslintPluginAstro.configs['flat/recommended'],
+  {
+    ...tseslint.configs.disableTypeChecked,
+    files: ['apps/website/**/*.astro'],
+    name: 'astro-files',
   },
   {
     files: ['packages/vscode-difftale/src/**/*.ts'],

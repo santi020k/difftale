@@ -1,0 +1,21 @@
+{
+  "name": "@santi020k/difftale-website",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build && node scripts/prepare-sites.mjs",
+    "dev": "astro dev",
+    "lint": "eslint . --no-warn-ignored",
+    "typecheck": "astro check",
+    "clean": "rm -rf .astro dist"
+  },
+  "dependencies": {
+    "@santi020k/lumen-astro": "catalog:",
+    "astro": "catalog:"
+  },
+  "devDependencies": {
+    "@astrojs/check": "catalog:",
+    "typescript": "catalog:"
+  }
+}
