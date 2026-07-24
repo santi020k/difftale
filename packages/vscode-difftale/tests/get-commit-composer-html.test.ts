@@ -14,6 +14,8 @@ describe('getCommitComposerHtml', () => {
     expect(html).toContain('Generate with AI')
     expect(html).toContain('id="commit"')
     expect(html).toContain('className = \'file-row\'')
+    expect(html).toContain('role="list"')
+    expect(html).toContain("directory || 'Repository root'")
     expect(html).toContain('type: actionType, paths: [filePath]')
     expect(html).toContain('id="commit-failure"')
     expect(html).toContain('Technical details')

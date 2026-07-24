@@ -16,6 +16,8 @@
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "turbo run build && changeset publish",
+    "sandbox:setup": "node scripts/setup-vscode-sandbox.mjs",
+    "sandbox:reset": "node scripts/setup-vscode-sandbox.mjs --reset",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
     "typecheck": "turbo run typecheck"

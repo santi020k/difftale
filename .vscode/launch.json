@@ -2,6 +2,19 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Debug Difftale in Sandbox",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "${workspaceFolder}/.difftale-sandbox/workspace",
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode-difftale"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/packages/vscode-difftale/dist/**/*.js"
+      ],
+      "preLaunchTask": "Prepare Difftale Sandbox"
+    },
+    {
       "name": "Run Difftale Extension",
       "type": "extensionHost",
       "request": "launch",

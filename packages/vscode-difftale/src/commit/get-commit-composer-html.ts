@@ -24,54 +24,57 @@ export const getCommitComposerHtml = (
     .scm {
       border-top: 1px solid var(--vscode-widget-border, transparent);
       margin-top: 12px;
-      padding-top: 2px;
+      padding-top: 6px;
     }
-    .scm-section { margin-top: 10px; }
+    .scm-section { margin-top: 8px; }
     .scm-header {
       align-items: center;
       display: flex;
       gap: 6px;
-      min-height: 28px;
+      min-height: 30px;
+      padding: 0 2px;
     }
     .scm-title { font-weight: 600; }
     .count-badge {
-      background: var(--vscode-badge-background);
-      border-radius: 9px;
-      color: var(--vscode-badge-foreground);
-      font-size: 0.85em;
-      line-height: 18px;
-      min-width: 18px;
-      padding: 0 5px;
-      text-align: center;
+      color: var(--vscode-descriptionForeground);
+      font-size: 0.9em;
+      font-variant-numeric: tabular-nums;
     }
     .scm-header .link-button { margin-left: auto; }
     .file-list {
-      border: 1px solid var(--vscode-widget-border, transparent);
-      border-radius: 3px;
-      max-height: 154px;
+      border-bottom: 1px solid var(--vscode-widget-border, transparent);
+      border-top: 1px solid var(--vscode-widget-border, transparent);
+      max-height: min(220px, 35vh);
       overflow: auto;
     }
     .file-row {
       align-items: center;
       display: grid;
-      gap: 6px;
+      border-top: 1px solid transparent;
+      gap: 8px;
       grid-template-columns: minmax(0, 1fr) auto;
-      min-height: 30px;
-      padding: 3px 4px 3px 8px;
+      min-height: 42px;
+      padding: 5px 2px 5px 8px;
+    }
+    .file-row + .file-row {
+      border-top-color: var(--vscode-widget-border, transparent);
     }
     .file-row:hover { background: var(--vscode-list-hoverBackground); }
     .file-copy {
-      align-items: baseline;
-      display: flex;
-      gap: 6px;
+      display: grid;
+      gap: 1px;
       min-width: 0;
       overflow: hidden;
       white-space: nowrap;
     }
-    .file-name { overflow: hidden; text-overflow: ellipsis; }
+    .file-name {
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     .file-directory {
       color: var(--vscode-descriptionForeground);
-      font-size: 0.9em;
+      font-size: 0.85em;
       overflow: hidden;
       text-overflow: ellipsis;
     }
@@ -79,12 +82,17 @@ export const getCommitComposerHtml = (
       background: transparent;
       border: 0;
       color: var(--vscode-icon-foreground);
-      font-size: 18px;
-      line-height: 20px;
-      min-height: 24px;
-      padding: 1px 6px;
+      font-size: 17px;
+      line-height: 22px;
+      min-height: 26px;
+      opacity: 0.55;
+      padding: 1px 7px;
     }
-    .icon-button:hover { background: var(--vscode-toolbar-hoverBackground); }
+    .file-row:hover .icon-button, .icon-button:focus-visible { opacity: 1; }
+    .icon-button:hover {
+      background: var(--vscode-toolbar-hoverBackground);
+      color: var(--vscode-foreground);
+    }
     #empty-changes {
       color: var(--vscode-descriptionForeground);
       margin: 10px 0 2px;
@@ -295,7 +303,7 @@ export const getCommitComposerHtml = (
         <span class="count-badge" id="unstaged-count">0</span>
         <button class="link-button" data-git-action id="stage-all" type="button">Stage all</button>
       </div>
-      <div class="file-list" id="unstaged-files"></div>
+      <div aria-label="Unstaged files" class="file-list" id="unstaged-files" role="list"></div>
     </section>
     <section class="scm-section" id="staged-section" hidden>
       <div class="scm-header">
@@ -303,7 +311,7 @@ export const getCommitComposerHtml = (
         <span class="count-badge" id="staged-count">0</span>
         <button class="link-button" data-git-action id="unstage-all" type="button">Unstage all</button>
       </div>
-      <div class="file-list" id="staged-files"></div>
+      <div aria-label="Staged files" class="file-list" id="staged-files" role="list"></div>
     </section>
     <p id="empty-changes" hidden>No working changes</p>
   </div>
@@ -425,6 +433,7 @@ export const getCommitComposerHtml = (
         const directory = separatorIndex >= 0 ? filePath.slice(0, separatorIndex) : ''
         const row = document.createElement('div')
         row.className = 'file-row'
+        row.setAttribute('role', 'listitem')
         const copy = document.createElement('div')
         copy.className = 'file-copy'
         copy.title = filePath
@@ -433,7 +442,7 @@ export const getCommitComposerHtml = (
         name.textContent = fileName
         const directoryElement = document.createElement('span')
         directoryElement.className = 'file-directory'
-        directoryElement.textContent = directory
+        directoryElement.textContent = directory || 'Repository root'
         copy.append(name, directoryElement)
         const action = document.createElement('button')
         action.className = 'icon-button'
