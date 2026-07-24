@@ -1,0 +1,39 @@
+{
+  "name": "@santi020k/difftale-core",
+  "version": "0.1.0",
+  "description": "Conventional Commit and Git history primitives for Difftale.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "clean": "rm -rf dist coverage",
+    "dev": "tsc --project tsconfig.build.json --watch",
+    "lint": "eslint src tests --no-warn-ignored",
+    "lint:fix": "eslint src tests --fix --no-warn-ignored",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}

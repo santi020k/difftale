@@ -1,0 +1,16 @@
+export const DEFAULT_DRAFT_COUNT = 3
+export const DEFAULT_MAXIMUM_DIFF_LENGTH_CHARACTERS = 60_000
+export const COMMIT_COMPOSER_VIEW_ID = 'difftale.commitComposer'
+export const COMMIT_DRAFT_STORAGE_KEY = 'difftale.commitDraft'
+export const COMMIT_STATUS_REFRESH_INTERVAL_MILLISECONDS = 2_000
+export const GIT_OPERATION_HISTORY_LIMIT_COUNT = 10
+export const GIT_FAILURE_DETAIL_LINE_LIMIT_COUNT = 12
+export const GIT_FAILURE_DETAIL_LENGTH_LIMIT_CHARACTERS = 2_400
+export const MAXIMUM_SCOPE_SUGGESTION_COUNT = 12
+export const MODEL_PROMPT_TOKEN_HEADROOM_COUNT = 256
+export const PROMPT_BUDGET_SEARCH_ITERATION_LIMIT_COUNT = 16
+export const PULL_REQUEST_COMPOSER_VIEW_ID = 'difftale.pullRequestComposer'
+export const PULL_REQUEST_DRAFT_STORAGE_KEY = 'difftale.pullRequestDraft'
+export const REVISION_SCHEME = 'difftale-revision'
+export const STATUS_BAR_PRIORITY = 100
+export const WORKING_REVISION_LABEL = 'Working Tree'

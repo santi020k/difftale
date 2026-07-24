@@ -1,0 +1,9 @@
+.turbo/**
+coverage/**
+node_modules/**
+scripts/**
+src/**
+tests/**
+tsconfig*.json
+vitest.config.ts
+*.vsix

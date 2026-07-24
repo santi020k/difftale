@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Difftale Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode-difftale"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/packages/vscode-difftale/dist/**/*.js"
+      ],
+      "preLaunchTask": "Build Difftale"
+    }
+  ]
+}

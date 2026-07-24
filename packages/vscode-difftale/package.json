@@ -1,0 +1,315 @@
+{
+  "name": "vscode-difftale",
+  "displayName": "Difftale",
+  "version": "0.8.0",
+  "private": true,
+  "description": "AI-crafted commits, pull request drafts, and effortless file history.",
+  "publisher": "santi020k",
+  "main": "./dist/extension.js",
+  "categories": [
+    "SCM Providers",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "scripts": {
+    "build": "node scripts/build.cjs",
+    "clean": "rm -rf dist coverage difftale.vsix",
+    "dev": "node scripts/build.cjs --watch",
+    "lint": "eslint src tests --no-warn-ignored",
+    "lint:fix": "eslint src tests --fix --no-warn-ignored",
+    "package": "pnpm run build && node scripts/vsce-package.cjs",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@santi020k/difftale-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/vscode": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "esbuild": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "difftale.focusCommitComposer",
+        "title": "Difftale: Compose Commit",
+        "icon": "$(git-commit)"
+      },
+      {
+        "command": "difftale.focusPullRequestComposer",
+        "title": "Difftale: Compose Pull Request",
+        "icon": "$(git-pull-request-create)"
+      },
+      {
+        "command": "difftale.generateCommitMessage",
+        "title": "Difftale: Generate Conventional Commit",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "difftale.composeCommitMessage",
+        "title": "Difftale: Compose Conventional Commit",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "difftale.showFileHistory",
+        "title": "Difftale: Show File History",
+        "icon": "$(history)"
+      },
+      {
+        "command": "difftale.olderRevision",
+        "title": "Difftale: Open Older Revision",
+        "icon": "$(arrow-left)"
+      },
+      {
+        "command": "difftale.newerRevision",
+        "title": "Difftale: Open Newer Revision",
+        "icon": "$(arrow-right)"
+      },
+      {
+        "command": "difftale.compareWithWorking",
+        "title": "Difftale: Compare File with Working Tree"
+      },
+      {
+        "command": "difftale.commit",
+        "title": "Difftale: Commit with Hook Output",
+        "icon": "$(git-commit)"
+      },
+      {
+        "command": "difftale.push",
+        "title": "Difftale: Push with Hook Output",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "difftale.showGitOutput",
+        "title": "Difftale: Show Git and Hook Output",
+        "icon": "$(output)"
+      },
+      {
+        "command": "difftale.refreshSidebar",
+        "title": "Difftale: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "difftale.openFileRevision",
+        "title": "Difftale: Open File Revision"
+      }
+    ],
+    "configuration": {
+      "title": "Difftale",
+      "properties": {
+        "difftale.allowedTypes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "feat",
+            "fix",
+            "docs",
+            "style",
+            "refactor",
+            "perf",
+            "test",
+            "build",
+            "ci",
+            "chore",
+            "revert"
+          ],
+          "description": "Allowed Conventional Commit types."
+        },
+        "difftale.maximumHeaderLength": {
+          "type": "number",
+          "default": 72,
+          "minimum": 20,
+          "description": "Maximum commit header length in characters."
+        },
+        "difftale.maximumDiffLength": {
+          "type": "number",
+          "default": 60000,
+          "minimum": 1000,
+          "description": "Maximum staged diff length sent to the selected VS Code language model."
+        },
+        "difftale.modelFamily": {
+          "type": "string",
+          "default": "",
+          "description": "Optional preferred VS Code language-model family. Empty uses the first available Copilot model."
+        },
+        "difftale.customInstructions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional project-specific instructions for generated commit messages."
+        },
+        "difftale.draftCount": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Number of alternative commit drafts to generate."
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "difftale.olderRevision",
+        "key": "alt+[",
+        "mac": "alt+[",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "difftale.newerRevision",
+        "key": "alt+]",
+        "mac": "alt+]",
+        "when": "editorTextFocus"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "difftale",
+          "title": "Difftale",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "difftale": [
+        {
+          "type": "webview",
+          "id": "difftale.commitComposer",
+          "name": "Commit Composer"
+        },
+        {
+          "type": "webview",
+          "id": "difftale.pullRequestComposer",
+          "name": "Pull Request Composer",
+          "visibility": "collapsed"
+        },
+        {
+          "id": "difftale.quickActions",
+          "name": "Quick Actions",
+          "visibility": "collapsed"
+        },
+        {
+          "id": "difftale.currentFileHistory",
+          "name": "Current File History",
+          "visibility": "collapsed"
+        },
+        {
+          "id": "difftale.gitOperations",
+          "name": "Git Hooks & Operations",
+          "visibility": "collapsed"
+        }
+      ]
+    },
+    "menus": {
+      "scm/title": [
+        {
+          "command": "difftale.generateCommitMessage",
+          "group": "navigation@1",
+          "when": "scmProvider == git"
+        },
+        {
+          "command": "difftale.composeCommitMessage",
+          "group": "navigation@2",
+          "when": "scmProvider == git"
+        },
+        {
+          "command": "difftale.commit",
+          "group": "navigation@3",
+          "when": "scmProvider == git"
+        },
+        {
+          "command": "difftale.push",
+          "group": "navigation@4",
+          "when": "scmProvider == git"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "difftale.olderRevision",
+          "group": "navigation@1",
+          "when": "resourceScheme == file || resourceScheme == difftale-revision"
+        },
+        {
+          "command": "difftale.newerRevision",
+          "group": "navigation@2",
+          "when": "resourceScheme == file || resourceScheme == difftale-revision"
+        },
+        {
+          "command": "difftale.showFileHistory",
+          "group": "navigation@3",
+          "when": "resourceScheme == file || resourceScheme == difftale-revision"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "difftale.showFileHistory",
+          "group": "difftale@1",
+          "when": "resourceScheme == file"
+        },
+        {
+          "command": "difftale.compareWithWorking",
+          "group": "difftale@2",
+          "when": "resourceScheme == file"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "difftale.showFileHistory",
+          "group": "difftale@1",
+          "when": "resourceScheme == file"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "difftale.refreshSidebar",
+          "group": "navigation",
+          "when": "view == difftale.currentFileHistory"
+        },
+        {
+          "command": "difftale.showGitOutput",
+          "group": "navigation",
+          "when": "view == difftale.gitOperations"
+        }
+      ]
+    }
+  },
+  "engines": {
+    "node": "^22.22.3 || ^24.16.0 || >=26.3.0",
+    "vscode": "^1.125.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/santi020k/difftale.git",
+    "directory": "packages/vscode-difftale"
+  },
+  "bugs": {
+    "url": "https://github.com/santi020k/difftale/issues"
+  },
+  "keywords": [
+    "git",
+    "source-control",
+    "conventional-commits",
+    "commitizen",
+    "copilot",
+    "ai",
+    "file-history",
+    "diff",
+    "pull-request"
+  ],
+  "author": {
+    "name": "Santiago Molina",
+    "url": "https://santi020k.com"
+  },
+  "license": "MIT"
+}

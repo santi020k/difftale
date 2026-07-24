@@ -1,0 +1,16 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+allowBuilds:
+  esbuild: true
+catalog:
+  "@santi020k/eslint-config-basic": 2.1.1
+  "@types/node": ^26.1.1
+  "@types/vscode": ^1.125.0
+  "@vitest/coverage-v8": ^4.1.10
+  esbuild: ^0.28.1
+  eslint: 10.7.0
+  turbo: ^2.10.4
+  typescript: ^6.0.3
+  typescript-eslint: ^8.63.0
+  vitest: ^4.1.10
