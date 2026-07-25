@@ -9,7 +9,7 @@ catalog:
   "@changesets/changelog-github": ^0.7.0
   "@changesets/cli": ^2.31.0
   "@santi020k/eslint-config-basic": 2.1.1
-  "@santi020k/lumen-astro": 0.1.0
+  "@santi020k/lumen-astro": 0.2.0
   "@types/node": ^26.1.1
   "@types/vscode": ^1.125.0
   "@vitest/coverage-v8": ^4.1.10
