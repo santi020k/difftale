@@ -109,7 +109,17 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
       webviewView.webview.cspSource, createNonce()
     )
 
-    webviewView.webview.onDidReceiveMessage(value => this.#handleMessage(value))
+    const messageSubscription = webviewView.webview.onDidReceiveMessage(
+      value => this.#handleMessage(value)
+    )
+
+    const visibilitySubscription = webviewView.onDidChangeVisibility(() => {
+      if (webviewView.visible) {
+        this.#sendBranchStatus().catch((error: unknown) => error)
+      }
+    })
+
+    this.#extensionContext.subscriptions.push(messageSubscription, visibilitySubscription)
   }
 
   public refresh = async (): Promise<void> => {

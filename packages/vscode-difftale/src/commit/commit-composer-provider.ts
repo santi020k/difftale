@@ -103,7 +103,15 @@ export class CommitComposerProvider implements vscode.WebviewViewProvider {
       view.webview.cspSource, createNonce()
     )
 
-    view.webview.onDidReceiveMessage(value => this.#handleMessage(value))
+    const messageSubscription = view.webview.onDidReceiveMessage(
+      value => this.#handleMessage(value)
+    )
+
+    const visibilitySubscription = view.onDidChangeVisibility(() => {
+      if (view.visible) this.#refresh().catch((error: unknown) => error)
+    })
+
+    this.#extensionContext.subscriptions.push(messageSubscription, visibilitySubscription)
   }
 
   public refresh = async (): Promise<void> => {
