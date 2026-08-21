@@ -9,7 +9,6 @@ on:
 
 permissions:
   contents: read
-  statuses: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -52,8 +51,18 @@ jobs:
       - name: Package extension
         run: pnpm run package:extension
 
-      - name: Report dispatched validation
-        if: github.event_name == 'workflow_dispatch'
+  report-dispatched-validation:
+    name: Report dispatched validation
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      statuses: write
+
+    steps:
+      - name: Report successful validation
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-

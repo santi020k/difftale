@@ -20,4 +20,10 @@ describe('getCommitUrl', () => {
       'https://bitbucket.org.example.com/owner/project/commit/abc123'
     )
   })
+
+  test('normalizes a trailing DNS dot for Bitbucket remotes', () => {
+    expect(getCommitUrl('git@bitbucket.org.:owner/project.git', 'abc123')).toBe(
+      'https://bitbucket.org/owner/project/commits/abc123'
+    )
+  })
 })
