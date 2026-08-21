@@ -14,4 +14,10 @@ describe('getCommitUrl', () => {
       'https://bitbucket.org/owner/project/commits/abc123'
     )
   })
+
+  test('does not treat lookalike hosts as Bitbucket', () => {
+    expect(getCommitUrl('https://bitbucket.org.example.com/owner/project.git', 'abc123')).toBe(
+      'https://bitbucket.org.example.com/owner/project/commit/abc123'
+    )
+  })
 })

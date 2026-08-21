@@ -29,7 +29,7 @@ export const getCommitUrl = (
 
   repositoryUrl.pathname = repositoryUrl.pathname.replace(/\.git$/u, '')
 
-  const commitSegment = repositoryUrl.hostname.includes('bitbucket.org') ?
+  const commitSegment = repositoryUrl.hostname === 'bitbucket.org' ?
     'commits' :
     'commit'
 
