@@ -1,13 +1,13 @@
 import {
   DEFAULT_COMMIT_TYPES,
-  DEFAULT_HEADER_LENGTH_CHARACTERS,
+  DEFAULT_HEADER_LENGTH_CHARACTERS
 } from '@santi020k/difftale-core'
 
 import * as vscode from 'vscode'
 
 import {
   DEFAULT_DRAFT_COUNT,
-  DEFAULT_MAXIMUM_DIFF_LENGTH_CHARACTERS,
+  DEFAULT_MAXIMUM_DIFF_LENGTH_CHARACTERS
 } from '../constants'
 import type { CommitGenerationSettings } from '../types'
 
@@ -25,6 +25,6 @@ export const getCommitGenerationSettings = (): CommitGenerationSettings => {
     maximumHeaderLengthCharacters:
       configuration.get<number>('maximumHeaderLength') ??
       DEFAULT_HEADER_LENGTH_CHARACTERS,
-    modelFamily: modelFamily || undefined,
+    modelFamily: modelFamily || undefined
   }
 }

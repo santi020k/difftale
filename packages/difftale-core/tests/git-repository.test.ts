@@ -13,7 +13,7 @@ const runGit = (repositoryPath: string, arguments_: string[]): void => {
   execFileSync('git', arguments_, {
     cwd: repositoryPath,
     encoding: 'utf8',
-    stdio: 'pipe',
+    stdio: 'pipe'
   })
 }
 
@@ -50,14 +50,30 @@ describe('GitRepository', () => {
     const repository = new GitRepository()
 
     await expect(repository.getCurrentBranch(repositoryPath)).resolves.toBe(
-      'feature/composer',
+      'feature/composer'
     )
     await expect(repository.getDefaultBaseBranch(repositoryPath)).resolves.toBe('main')
     await expect(
-      repository.getCommitSubjectsBetween(repositoryPath, 'main'),
+      repository.getCommitSubjectsBetween(repositoryPath, 'main')
     ).resolves.toEqual(['feat(pr): add pull request composer'])
     await expect(repository.getPullRequestDiff(repositoryPath, 'main')).resolves.toContain(
-      'export const enabled = true',
+      'export const enabled = true'
+    )
+    await expect(repository.getBranches(repositoryPath)).resolves.toEqual([
+      'feature/composer',
+      'main'
+    ])
+  })
+
+  test('returns the preferred remote URL', async () => {
+    const repositoryPath = createRepository()
+    runGit(repositoryPath, ['remote', 'add', 'backup', 'git@example.com:backup/repo.git'])
+    runGit(repositoryPath, ['remote', 'add', 'origin', 'git@example.com:owner/repo.git'])
+
+    const repository = new GitRepository()
+
+    await expect(repository.getRemoteUrl(repositoryPath)).resolves.toBe(
+      'git@example.com:owner/repo.git'
     )
   })
 
@@ -73,21 +89,20 @@ describe('GitRepository', () => {
     const repository = new GitRepository()
 
     await expect(repository.getStagedDiff(repositoryPath)).resolves.toContain(
-      'export const enabled = true',
+      'export const enabled = true'
     )
     await expect(repository.getStagedFilePaths(repositoryPath)).resolves.toEqual([
-      'src/feature.ts',
+      'src/feature.ts'
     ])
     await expect(repository.getRecentCommitSubjects(repositoryPath)).resolves.toEqual([
-      'feat(core): add feature flag',
+      'feat(core): add feature flag'
     ])
   })
 
   test('returns no recent subjects before the first commit', async () => {
     const repositoryPath = createRepository()
     writeFileSync(
-      join(repositoryPath, 'src', 'feature.ts'),
-      'export const enabled = true\n',
+      join(repositoryPath, 'src', 'feature.ts'), 'export const enabled = true\n'
     )
     runGit(repositoryPath, ['add', '.'])
 
@@ -120,7 +135,7 @@ describe('GitRepository', () => {
       branch: 'main',
       publishRequired: false,
       remoteName: 'origin',
-      upstreamBranch: 'origin/main',
+      upstreamBranch: 'origin/main'
     })
   })
 
@@ -129,8 +144,7 @@ describe('GitRepository', () => {
     const remotePath = mkdtempSync(join(tmpdir(), 'difftale-core-remote-'))
     temporaryDirectories.push(remotePath)
     writeFileSync(
-      join(repositoryPath, 'src', 'feature.ts'),
-      'export const enabled = true\n',
+      join(repositoryPath, 'src', 'feature.ts'), 'export const enabled = true\n'
     )
     runGit(repositoryPath, ['add', '.'])
     runGit(repositoryPath, ['commit', '-m', 'feat(core): add feature'])
@@ -145,7 +159,7 @@ describe('GitRepository', () => {
       behindCount: 0,
       branch: 'feature',
       publishRequired: true,
-      remoteName: 'origin',
+      remoteName: 'origin'
     })
   })
 
@@ -163,33 +177,33 @@ describe('GitRepository', () => {
 
     await expect(repository.getChangedFilePaths(repositoryPath)).resolves.toEqual([
       'src/tracked.ts',
-      'src/untracked.ts',
+      'src/untracked.ts'
     ])
     await expect(repository.getUnstagedFilePaths(repositoryPath)).resolves.toEqual([
       'src/tracked.ts',
-      'src/untracked.ts',
+      'src/untracked.ts'
     ])
 
     await repository.stageFiles(repositoryPath, ['src/tracked.ts'])
 
     await expect(repository.getStagedFilePaths(repositoryPath)).resolves.toEqual([
-      'src/tracked.ts',
+      'src/tracked.ts'
     ])
 
     await repository.stageAllChanges(repositoryPath)
 
     await expect(repository.getStagedFilePaths(repositoryPath)).resolves.toEqual([
       'src/tracked.ts',
-      'src/untracked.ts',
+      'src/untracked.ts'
     ])
 
     await repository.unstageFiles(repositoryPath, ['src/tracked.ts'])
 
     await expect(repository.getStagedFilePaths(repositoryPath)).resolves.toEqual([
-      'src/untracked.ts',
+      'src/untracked.ts'
     ])
     await expect(repository.getUnstagedFilePaths(repositoryPath)).resolves.toEqual([
-      'src/tracked.ts',
+      'src/tracked.ts'
     ])
   })
 
@@ -198,25 +212,23 @@ describe('GitRepository', () => {
     const originalPath = join(repositoryPath, 'src', 'original.ts')
     const renamedPath = join(repositoryPath, 'src', 'renamed.ts')
     writeFileSync(
-      originalPath,
-      [
+      originalPath, [
         'export const name = "difftale"',
         'export const enabled = true',
         'export const version = 1',
-        '',
-      ].join('\n'),
+        ''
+      ].join('\n')
     )
     runGit(repositoryPath, ['add', '.'])
     runGit(repositoryPath, ['commit', '-m', 'feat(core): add original file'])
     renameSync(originalPath, renamedPath)
     writeFileSync(
-      renamedPath,
-      [
+      renamedPath, [
         'export const name = "difftale"',
         'export const enabled = true',
         'export const version = 2',
-        '',
-      ].join('\n'),
+        ''
+      ].join('\n')
     )
     runGit(repositoryPath, ['add', '.'])
     runGit(repositoryPath, ['commit', '-m', 'refactor(core): rename original file'])
@@ -236,7 +248,7 @@ describe('GitRepository', () => {
     }
 
     await expect(repository.getFileAtRevision(repositoryPath, originalRevision)).resolves.toContain(
-      'version = 1',
+      'version = 1'
     )
   })
 })

@@ -34,7 +34,8 @@ where those tools are unnecessarily broad or repetitive.
 - Manual Conventional Commit composition remains available without AI.
 - Source code is sent to a language model only after a user invokes generation
   and approves VS Code's model-access consent.
-- Pull request drafts remain editable and are saved in workspace state.
+- Commit and pull request drafts remain editable and are saved per repository
+  and branch in workspace state.
 - Creating a pull request requires an explicit action and uses the authenticated
   GitHub CLI without pushing a branch automatically.
 - Hooks run exactly once as part of Git's normal commit or push lifecycle.
@@ -135,7 +136,8 @@ extension.
 - Commit Composer: changed/staged counts, explicit staging, editable title and
   description, AI generation, and hook-aware commit execution.
 - Pull Request Composer: editable title and description, AI generation, draft
-  persistence, copy, clear, and explicit GitHub PR creation.
+  persistence, repository and base-branch selection, copy, clear, and explicit
+  GitHub PR creation.
 - Quick Actions: generate, compose, commit, push, browse history, and open
   output.
 - Current File History: direct revision entries for the active file.

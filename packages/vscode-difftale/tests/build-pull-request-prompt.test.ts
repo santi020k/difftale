@@ -9,15 +9,15 @@ describe('buildPullRequestPrompt', () => {
         baseBranch: 'main',
         commitSubjects: ['feat(pr): add composer'],
         currentBranch: 'feature/composer',
-        diff: '123456789',
+        diff: '123456789'
       },
       settings: {
         allowedTypes: ['feat', 'fix'],
         customInstructions: ['Mention accessibility changes.'],
         draftCount: 3,
         maximumDiffLengthCharacters: 5,
-        maximumHeaderLengthCharacters: 72,
-      },
+        maximumHeaderLengthCharacters: 72
+      }
     })
 
     expect(prompt).toContain('Current branch: feature/composer')

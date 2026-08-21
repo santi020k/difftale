@@ -9,10 +9,10 @@
     "dev": "turbo run dev",
     "lint": "pnpm run lint:repo && turbo run lint",
     "lint:fix": "pnpm run lint:repo:fix && turbo run lint:fix",
-    "lint:repo": "eslint . --no-warn-ignored",
-    "lint:repo:fix": "eslint . --fix --no-warn-ignored",
+    "lint:repo": "eslint . --no-warn-ignored --max-warnings=0",
+    "lint:repo:fix": "eslint . --fix --no-warn-ignored --max-warnings=0",
     "ok": "pnpm install --frozen-lockfile && pnpm run build && pnpm run test && pnpm run lint && pnpm run typecheck",
-    "package:extension": "pnpm --filter vscode-difftale package",
+    "package:extension": "pnpm --filter @santi020k/difftale-core build && pnpm --filter vscode-difftale package",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "turbo run build && changeset publish",
@@ -20,18 +20,27 @@
     "sandbox:reset": "node scripts/setup-vscode-sandbox.mjs --reset",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "prepare": "husky",
+    "pre-push": "pnpm run ok",
+    "commit": "commitprompt"
   },
   "devDependencies": {
     "@changesets/changelog-github": "catalog:",
     "@changesets/cli": "catalog:",
+    "@santi020k/commitprompt": "catalog:",
+    "@santi020k/eslint-config-astro": "catalog:",
     "@santi020k/eslint-config-basic": "catalog:",
+    "@santi020k/eslint-config-extensions": "catalog:",
+    "@santi020k/eslint-config-formats": "catalog:",
+    "@santi020k/eslint-config-libraries": "catalog:",
+    "@santi020k/eslint-config-testing": "catalog:",
+    "@santi020k/eslint-config-tools": "catalog:",
     "@types/node": "catalog:",
     "eslint": "catalog:",
-    "eslint-plugin-astro": "catalog:",
+    "husky": "catalog:",
     "turbo": "catalog:",
-    "typescript": "catalog:",
-    "typescript-eslint": "catalog:"
+    "typescript": "catalog:"
   },
   "engines": {
     "node": "^22.22.3 || ^24.16.0 || >=26.3.0"

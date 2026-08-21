@@ -358,28 +358,28 @@ changes exist.`
           <p>Difftale is still being shaped in public. The principles are already firm.</p>
         </div>
         <Accordion class="faq-list">
-          <details open>
+          <details name="difftale-faq" open>
             <summary>Does Difftale send my source code to its own service?</summary>
             <p>
               No. Difftale has no hosted model service. Source is sent to a language model only
               after you invoke generation and approve VS Code’s model-access consent.
             </p>
           </details>
-          <details>
+          <details name="difftale-faq">
             <summary>Does it replace VS Code Source Control or GitLens?</summary>
             <p>
               No. Difftale adds a focused layer for composing commits and pull requests, moving
               through one file’s revisions, and running explicit commit and push operations.
             </p>
           </details>
-          <details>
+          <details name="difftale-faq">
             <summary>Can I write a commit without AI?</summary>
             <p>
               Yes. Manual Conventional Commit composition remains available, with the same
               validation before the message is used.
             </p>
           </details>
-          <details>
+          <details name="difftale-faq">
             <summary>Can it create a pull request for me?</summary>
             <p>
               Only when you explicitly ask. Difftale uses the authenticated GitHub CLI and never
@@ -411,7 +411,14 @@ changes exist.`
         </span>
         <span>Difftale</span>
       </a>
-      <p>AI-crafted commits and effortless file history for VS Code.</p>
+      <div class="footer-copy">
+        <p>AI-crafted commits and effortless file history for VS Code.</p>
+        <p>
+          <a href="https://santi020k.com" target="_blank" rel="noreferrer">
+            Designed and developed by santi020k.
+          </a>
+        </p>
+      </div>
       <div class="footer-links">
         <a href={repositoryUrl} target="_blank" rel="noreferrer">GitHub</a>
         <a href="https://lumen.santi020k.com" target="_blank" rel="noreferrer">Built with Lumen</a>

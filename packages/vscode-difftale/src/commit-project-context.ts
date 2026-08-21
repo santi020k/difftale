@@ -13,7 +13,7 @@ const CONVENTIONAL_HEADER_PATTERN = /^[a-z][a-z0-9-]*\((?<scope>[^)]+)\)(?:!)?: 
 
 export const getCommitProjectContext = async (
   repository: GitRepository,
-  repositoryPath: string,
+  repositoryPath: string
 ): Promise<CommitProjectContext> => {
   const recentSubjects = await repository.getRecentCommitSubjects(repositoryPath)
   const stagedFilePaths = await repository.getStagedFilePaths(repositoryPath)
@@ -24,24 +24,21 @@ export const getCommitProjectContext = async (
       [
         stagedScope,
         ...recentSubjects.map(
-          subject => CONVENTIONAL_HEADER_PATTERN.exec(subject)?.groups?.scope,
-        ),
-      ].filter(scope => scope !== undefined),
-    ),
+          subject => CONVENTIONAL_HEADER_PATTERN.exec(subject)?.groups?.scope
+        )
+      ].filter(scope => scope !== undefined)
+    )
   ].slice(0, MAXIMUM_SCOPE_SUGGESTION_COUNT)
 
   const configurationUris = await vscode.workspace.findFiles(
-    new vscode.RelativePattern(repositoryPath, COMMIT_CONFIGURATION_PATTERN),
-    '**/node_modules/**',
+    new vscode.RelativePattern(repositoryPath, COMMIT_CONFIGURATION_PATTERN), '**/node_modules/**'
   )
 
-  const configurationFiles = configurationUris.map(uri =>
-    vscode.workspace.asRelativePath(uri, false),
-  )
+  const configurationFiles = configurationUris.map(uri => vscode.workspace.asRelativePath(uri, false))
 
   return {
     configurationFiles: [...new Set(configurationFiles)],
     recentSubjects,
-    suggestedScopes,
+    suggestedScopes
   }
 }

@@ -1,7 +1,7 @@
 import { relative } from 'node:path'
 
 import { RECENT_COMMIT_LIMIT_COUNT } from '../constants.js'
-import type { GitBranchSyncStatus,GitCommandRunner, GitRepositoryOptions, GitRevision  } from '../types.js'
+import type { GitBranchSyncStatus, GitCommandRunner, GitRepositoryOptions, GitRevision  } from '../types.js'
 import { normalizeGitPath } from '../utils/normalize-git-path.js'
 
 import { NodeGitCommandRunner } from './node-git-command-runner.js'
@@ -16,7 +16,7 @@ export class GitRepository {
 
   async #tryRun(
     arguments_: readonly string[],
-    repositoryPath: string,
+    repositoryPath: string
   ): Promise<string | undefined> {
     try {
       return await this.#runner.run(arguments_, repositoryPath)
@@ -27,7 +27,7 @@ export class GitRepository {
 
   async #getUnpublishedBranchSyncStatus(
     repositoryPath: string,
-    branch: string,
+    branch: string
   ): Promise<GitBranchSyncStatus> {
     const remoteNames = (
       (await this.#tryRun(['remote'], repositoryPath)) ?? ''
@@ -36,14 +36,13 @@ export class GitRepository {
       .map(remoteName => remoteName.trim())
       .filter(Boolean)
 
-    const remoteName = remoteNames.includes('origin')
-      ? 'origin'
-      : remoteNames[0]
+    const remoteName = remoteNames.includes('origin') ?
+      'origin' :
+      remoteNames[0]
 
     const hasCommits =
       (await this.#tryRun(
-        ['rev-parse', '--verify', 'HEAD'],
-        repositoryPath,
+        ['rev-parse', '--verify', 'HEAD'], repositoryPath
       )) !== undefined
 
     return {
@@ -51,16 +50,15 @@ export class GitRepository {
       behindCount: 0,
       branch,
       publishRequired: Boolean(remoteName && hasCommits && branch !== 'Detached HEAD'),
-      remoteName,
+      remoteName
     }
   }
 
-  public findRoot = async (filePath: string): Promise<string> =>
-    (await this.#runner.run(['-C', filePath, 'rev-parse', '--show-toplevel'])).trim()
+  public findRoot = async (filePath: string): Promise<string> => (await this.#runner.run(['-C', filePath, 'rev-parse', '--show-toplevel'])).trim()
 
   public getFileAtRevision = async (
     repositoryPath: string,
-    revision: GitRevision,
+    revision: GitRevision
   ): Promise<string> => {
     if (!revision.existsAtRevision) {
       return ''
@@ -71,23 +69,22 @@ export class GitRepository {
 
   public getFileHistory = async (
     repositoryPath: string,
-    absoluteFilePath: string,
+    absoluteFilePath: string
   ): Promise<GitRevision[]> => {
     const relativeFilePath = normalizeGitPath(relative(repositoryPath, absoluteFilePath))
 
     const format = [
-      `%x1e%H`,
-      `%h`,
-      `%an`,
-      `%aI`,
-      `%s`,
-      `%b`,
-      '',
+      '%x1e%H',
+      '%h',
+      '%an',
+      '%aI',
+      '%s',
+      '%b',
+      ''
     ].join('%x1f')
 
     const output = await this.#runner.run(
-      ['log', '--follow', `--format=${format}`, '--name-status', '--', relativeFilePath],
-      repositoryPath,
+      ['log', '--follow', `--format=${format}`, '--name-status', '--', relativeFilePath], repositoryPath
     )
 
     return parseGitLog(output)
@@ -95,12 +92,11 @@ export class GitRepository {
 
   public getRecentCommitSubjects = async (
     repositoryPath: string,
-    limitCount = RECENT_COMMIT_LIMIT_COUNT,
+    limitCount = RECENT_COMMIT_LIMIT_COUNT
   ): Promise<string[]> => {
     const hasCommits =
       (await this.#tryRun(
-        ['rev-parse', '--verify', 'HEAD'],
-        repositoryPath,
+        ['rev-parse', '--verify', 'HEAD'], repositoryPath
       )) !== undefined
 
     if (!hasCommits) {
@@ -108,8 +104,7 @@ export class GitRepository {
     }
 
     const output = await this.#runner.run(
-      ['log', `-${limitCount}`, '--format=%s'],
-      repositoryPath,
+      ['log', `-${limitCount}`, '--format=%s'], repositoryPath
     )
 
     return output
@@ -130,21 +125,60 @@ export class GitRepository {
     return branch
   }
 
+  public getBranches = async (repositoryPath: string): Promise<string[]> => {
+    const output = await this.#runner.run(
+      [
+        'for-each-ref',
+        '--format=%(refname:short)',
+        'refs/heads',
+        'refs/remotes'
+      ], repositoryPath
+    )
+
+    return [
+      ...new Set(
+        output
+          .split('\n')
+          .map(branch => branch.trim())
+          .filter(branch => branch && !branch.endsWith('/HEAD'))
+      )
+    ]
+  }
+
+  public getRemoteUrl = async (
+    repositoryPath: string
+  ): Promise<string | undefined> => {
+    const remoteNames = (
+      (await this.#tryRun(['remote'], repositoryPath)) ?? ''
+    )
+      .split('\n')
+      .map(remoteName => remoteName.trim())
+      .filter(Boolean)
+
+    const remoteName = remoteNames.includes('origin') ?
+      'origin' :
+      remoteNames[0]
+
+    if (!remoteName) return undefined
+
+    return (
+      await this.#tryRun(['remote', 'get-url', remoteName], repositoryPath)
+    )?.trim()
+  }
+
   public getBranchSyncStatus = async (
-    repositoryPath: string,
+    repositoryPath: string
   ): Promise<GitBranchSyncStatus> => {
     const branch =
       (
         await this.#tryRun(
-          ['branch', '--show-current'],
-          repositoryPath,
+          ['branch', '--show-current'], repositoryPath
         )
       )?.trim() || 'Detached HEAD'
 
     const upstreamBranch = (
       (await this.#tryRun(
-        ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'],
-        repositoryPath,
+        ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'], repositoryPath
       )) ?? ''
     ).trim()
 
@@ -154,8 +188,7 @@ export class GitRepository {
 
     const counts = (
       await this.#runner.run(
-        ['rev-list', '--left-right', '--count', `${upstreamBranch}...HEAD`],
-        repositoryPath,
+        ['rev-list', '--left-right', '--count', `${upstreamBranch}...HEAD`], repositoryPath
       )
     )
       .trim()
@@ -170,15 +203,14 @@ export class GitRepository {
       branch,
       publishRequired: false,
       remoteName: upstreamBranch.split('/')[0],
-      upstreamBranch,
+      upstreamBranch
     }
   }
 
   public getDefaultBaseBranch = async (repositoryPath: string): Promise<string> => {
     const remoteHead = (
       (await this.#tryRun(
-        ['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD'],
-        repositoryPath,
+        ['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD'], repositoryPath
       )) ?? ''
     ).trim()
 
@@ -190,8 +222,7 @@ export class GitRepository {
 
     for (const candidate of candidates) {
       const result = await this.#tryRun(
-        ['rev-parse', '--verify', '--quiet', candidate],
-        repositoryPath,
+        ['rev-parse', '--verify', '--quiet', candidate], repositoryPath
       )
 
       if (result !== undefined) {
@@ -204,11 +235,10 @@ export class GitRepository {
 
   public getCommitSubjectsBetween = async (
     repositoryPath: string,
-    baseBranch: string,
+    baseBranch: string
   ): Promise<string[]> => {
     const output = await this.#runner.run(
-      ['log', '--format=%s', `${baseBranch}..HEAD`],
-      repositoryPath,
+      ['log', '--format=%s', `${baseBranch}..HEAD`], repositoryPath
     )
 
     return output
@@ -219,20 +249,16 @@ export class GitRepository {
 
   public getPullRequestDiff = async (
     repositoryPath: string,
-    baseBranch: string,
-  ): Promise<string> =>
-    this.#runner.run(
-      ['diff', '--no-ext-diff', '--unified=3', `${baseBranch}...HEAD`],
-      repositoryPath,
-    )
+    baseBranch: string
+  ): Promise<string> => this.#runner.run(
+    ['diff', '--no-ext-diff', '--unified=3', `${baseBranch}...HEAD`], repositoryPath
+  )
 
-  public getStagedDiff = async (repositoryPath: string): Promise<string> =>
-    this.#runner.run(['diff', '--cached', '--no-ext-diff', '--unified=3'], repositoryPath)
+  public getStagedDiff = async (repositoryPath: string): Promise<string> => this.#runner.run(['diff', '--cached', '--no-ext-diff', '--unified=3'], repositoryPath)
 
   public getStagedFilePaths = async (repositoryPath: string): Promise<string[]> => {
     const output = await this.#runner.run(
-      ['diff', '--cached', '--name-only', '--diff-filter=ACMRD'],
-      repositoryPath,
+      ['diff', '--cached', '--name-only', '--diff-filter=ACMRD'], repositoryPath
     )
 
     return output
@@ -243,8 +269,7 @@ export class GitRepository {
 
   public getChangedFilePaths = async (repositoryPath: string): Promise<string[]> => {
     const output = await this.#runner.run(
-      ['status', '--porcelain=v1', '--untracked-files=all'],
-      repositoryPath,
+      ['status', '--porcelain=v1', '--untracked-files=all'], repositoryPath
     )
 
     return output
@@ -258,8 +283,7 @@ export class GitRepository {
 
   public getUnstagedFilePaths = async (repositoryPath: string): Promise<string[]> => {
     const output = await this.#runner.run(
-      ['status', '--porcelain=v1', '--untracked-files=all'],
-      repositoryPath,
+      ['status', '--porcelain=v1', '--untracked-files=all'], repositoryPath
     )
 
     return output.split('\n').flatMap(line => {
@@ -274,7 +298,7 @@ export class GitRepository {
 
   public stageFiles = async (
     repositoryPath: string,
-    filePaths: readonly string[],
+    filePaths: readonly string[]
   ): Promise<void> => {
     if (filePaths.length > 0) {
       await this.#runner.run(['add', '--', ...filePaths], repositoryPath)
@@ -287,7 +311,7 @@ export class GitRepository {
 
   public unstageFiles = async (
     repositoryPath: string,
-    filePaths: readonly string[],
+    filePaths: readonly string[]
   ): Promise<void> => {
     if (filePaths.length > 0) {
       await this.#runner.run(['restore', '--staged', '--', ...filePaths], repositoryPath)
@@ -296,13 +320,12 @@ export class GitRepository {
 
   public hasWorkingChanges = async (
     repositoryPath: string,
-    absoluteFilePath: string,
+    absoluteFilePath: string
   ): Promise<boolean> => {
     const relativeFilePath = normalizeGitPath(relative(repositoryPath, absoluteFilePath))
 
     const output = await this.#runner.run(
-      ['status', '--porcelain=v1', '--untracked-files=all', '--', relativeFilePath],
-      repositoryPath,
+      ['status', '--porcelain=v1', '--untracked-files=all', '--', relativeFilePath], repositoryPath
     )
 
     return Boolean(output.trim())

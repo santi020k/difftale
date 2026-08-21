@@ -1,6 +1,8 @@
+import { basename } from 'node:path'
+
 import {
   type GitRepository,
-  validateConventionalCommit,
+  validateConventionalCommit
 } from '@santi020k/difftale-core'
 
 import * as vscode from 'vscode'
@@ -8,13 +10,15 @@ import * as vscode from 'vscode'
 import { fitPullRequestPrompt } from '../ai/fit-pull-request-prompt'
 import { parsePullRequestDraft } from '../ai/parse-pull-request-draft'
 import { PULL_REQUEST_DRAFT_STORAGE_KEY } from '../constants'
+import { getGitRepositoryPaths } from '../git/git-source-control'
 import { resolveRepositoryPath } from '../repository-resolver'
 import type {
   PullRequestDraft,
-  PullRequestGenerationContext,
+  PullRequestGenerationContext
 } from '../types'
 import { createNonce } from '../utils/create-nonce'
 import { getCommitGenerationSettings } from '../utils/get-commit-generation-settings'
+import { getRepositoryStorageKey } from '../utils/get-repository-storage-key'
 import { getString } from '../utils/get-string'
 import { isRecord } from '../utils/is-record'
 
@@ -28,6 +32,7 @@ interface PullRequestComposerProviderOptions {
 }
 
 interface PullRequestComposerMessage {
+  baseBranch?: string
   description?: string
   title?: string
   type: string
@@ -35,7 +40,7 @@ interface PullRequestComposerMessage {
 
 const EMPTY_DRAFT: PullRequestDraft = {
   description: '',
-  title: '',
+  title: ''
 }
 
 const parseMessage = (value: unknown): PullRequestComposerMessage | undefined => {
@@ -50,9 +55,10 @@ const parseMessage = (value: unknown): PullRequestComposerMessage | undefined =>
   }
 
   return {
+    baseBranch: getString(value, 'baseBranch'),
     description: getString(value, 'description'),
     title: getString(value, 'title'),
-    type,
+    type
   }
 }
 
@@ -61,9 +67,9 @@ const getCreationErrorMessage = (error: unknown): string => {
     return 'PR creation failed.'
   }
 
-  return error.message.includes('ENOENT')
-    ? 'Install and authenticate GitHub CLI (gh) to create pull requests.'
-    : error.message
+  return error.message.includes('ENOENT') ?
+    'Install and authenticate GitHub CLI (gh) to create pull requests.' :
+    error.message
 }
 
 export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
@@ -71,6 +77,16 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
   readonly #outputChannel: vscode.OutputChannel
   readonly #repository: GitRepository
   readonly #pullRequestService = new GitHubPullRequestService()
+  #activeBranchContext:
+    | {
+      baseBranch: string
+      currentBranch: string
+      repositoryPath: string
+    } |
+    undefined
+
+  #selectedBaseBranch: string | undefined
+  #selectedRepositoryPath: string | undefined
   #view: vscode.WebviewView | undefined
 
   public constructor(options: PullRequestComposerProviderOptions) {
@@ -86,15 +102,30 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.options = {
       enableScripts: true,
-      localResourceRoots: [this.#extensionContext.extensionUri],
+      localResourceRoots: [this.#extensionContext.extensionUri]
     }
 
     webviewView.webview.html = getPullRequestComposerHtml(
-      webviewView.webview.cspSource,
-      createNonce(),
+      webviewView.webview.cspSource, createNonce()
     )
 
-    webviewView.webview.onDidReceiveMessage(value => this.#handleMessage(value))
+    const messageSubscription = webviewView.webview.onDidReceiveMessage(
+      value => this.#handleMessage(value)
+    )
+
+    const visibilitySubscription = webviewView.onDidChangeVisibility(() => {
+      if (webviewView.visible) {
+        this.#sendBranchStatus().catch((error: unknown) => error)
+      }
+    })
+
+    this.#extensionContext.subscriptions.push(messageSubscription, visibilitySubscription)
+  }
+
+  public refresh = async (): Promise<void> => {
+    if (this.#view?.visible) {
+      await this.#sendBranchStatus()
+    }
   }
 
   async #handleMessage(value: unknown): Promise<void> {
@@ -110,7 +141,7 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
 
     const draft = {
       description: message.description?.trim() ?? '',
-      title: message.title?.trim() ?? '',
+      title: message.title?.trim() ?? ''
     }
 
     if (message.type === 'copy') {
@@ -126,18 +157,34 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
 
   async #handleViewMessage(message: PullRequestComposerMessage): Promise<boolean> {
     if (message.type === 'ready') {
-      await this.#sendDraft(this.#getDraft())
-
       await this.#sendBranchStatus()
 
       return true
     }
 
     if (message.type === 'draftChanged') {
+      const context =
+        this.#activeBranchContext ??
+        (await this.#getBranchContext())
+
+      if (!context) return true
+
       await this.#saveDraft({
         description: message.description ?? '',
-        title: message.title ?? '',
-      })
+        title: message.title ?? ''
+      }, context.repositoryPath, context.currentBranch)
+
+      return true
+    }
+
+    if (message.type === 'selectRepository') {
+      await this.#selectRepository()
+
+      return true
+    }
+
+    if (message.type === 'selectBaseBranch') {
+      await this.#selectBaseBranch()
 
       return true
     }
@@ -151,18 +198,44 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
     return false
   }
 
-  #getDraft(): PullRequestDraft {
-    return (
-      this.#extensionContext.workspaceState.get<PullRequestDraft>(
-        PULL_REQUEST_DRAFT_STORAGE_KEY,
-      ) ?? EMPTY_DRAFT
+  async #loadDraft(
+    repositoryPath: string,
+    branch: string
+  ): Promise<PullRequestDraft> {
+    const storageKey = getRepositoryStorageKey(
+      PULL_REQUEST_DRAFT_STORAGE_KEY, repositoryPath, branch
     )
+
+    const draft =
+      this.#extensionContext.workspaceState.get<PullRequestDraft>(storageKey)
+
+    if (draft) return draft
+
+    const legacyDraft =
+      this.#extensionContext.workspaceState.get<PullRequestDraft>(
+        PULL_REQUEST_DRAFT_STORAGE_KEY
+      )
+
+    if (!legacyDraft) return EMPTY_DRAFT
+
+    await this.#extensionContext.workspaceState.update(storageKey, legacyDraft)
+
+    const clearedLegacyDraft = undefined
+
+    await this.#extensionContext.workspaceState.update(
+      PULL_REQUEST_DRAFT_STORAGE_KEY, clearedLegacyDraft
+    )
+
+    return legacyDraft
   }
 
-  async #saveDraft(draft: PullRequestDraft): Promise<void> {
+  async #saveDraft(
+    draft: PullRequestDraft,
+    repositoryPath: string,
+    branch: string
+  ): Promise<void> {
     await this.#extensionContext.workspaceState.update(
-      PULL_REQUEST_DRAFT_STORAGE_KEY,
-      draft,
+      getRepositoryStorageKey(PULL_REQUEST_DRAFT_STORAGE_KEY, repositoryPath, branch), draft
     )
   }
 
@@ -170,13 +243,13 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
     await this.#view?.webview.postMessage({
       description: draft.description,
       title: draft.title,
-      type: 'setDraft',
+      type: 'setDraft'
     })
   }
 
   async #sendStatus(
     text: string,
-    kind: 'error' | 'info' | 'success' | 'warning' = 'info',
+    kind: 'error' | 'info' | 'success' | 'warning' = 'info'
   ): Promise<void> {
     await this.#view?.webview.postMessage({ kind, text, type: 'status' })
   }
@@ -185,10 +258,16 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
     await this.#view?.webview.postMessage({ type: 'busy', value })
   }
 
-  async #getContext(): Promise<
-    { generation: PullRequestGenerationContext; repositoryPath: string } | undefined
+  async #getBranchContext(): Promise<
+    {
+      baseBranch: string
+      currentBranch: string
+      repositoryPath: string
+    } | undefined
   > {
-    const repositoryPath = await resolveRepositoryPath(this.#repository)
+    const repositoryPath =
+      this.#selectedRepositoryPath ??
+      (await resolveRepositoryPath(this.#repository))
 
     if (!repositoryPath) {
       await vscode.window.showErrorMessage('Difftale could not find a Git repository.')
@@ -197,11 +276,30 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
     }
 
     const currentBranch = await this.#repository.getCurrentBranch(repositoryPath)
-    const baseBranch = await this.#repository.getDefaultBaseBranch(repositoryPath)
+
+    const baseBranch =
+      this.#selectedBaseBranch ??
+      (await this.#repository.getDefaultBaseBranch(repositoryPath))
+
+    const context = { baseBranch, currentBranch, repositoryPath }
+
+    this.#activeBranchContext = context
+
+    return context
+  }
+
+  async #getContext(): Promise<
+    { generation: PullRequestGenerationContext, repositoryPath: string } | undefined
+  > {
+    const branchContext = await this.#getBranchContext()
+
+    if (!branchContext) return undefined
+
+    const { baseBranch, currentBranch, repositoryPath } = branchContext
 
     const [commitSubjects, diff] = await Promise.all([
       this.#repository.getCommitSubjectsBetween(repositoryPath, baseBranch),
-      this.#repository.getPullRequestDiff(repositoryPath, baseBranch),
+      this.#repository.getPullRequestDiff(repositoryPath, baseBranch)
     ])
 
     return {
@@ -209,44 +307,104 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
         baseBranch,
         commitSubjects,
         currentBranch,
-        diff,
+        diff
       },
-      repositoryPath,
+      repositoryPath
     }
+  }
+
+  async #selectRepository(): Promise<void> {
+    const repositoryPaths = await getGitRepositoryPaths()
+
+    if (repositoryPaths.length === 0) {
+      await this.#sendStatus('Difftale could not find a Git repository.', 'error')
+
+      return
+    }
+
+    const selection = await vscode.window.showQuickPick(
+      repositoryPaths.map(repositoryPath => ({
+        description: repositoryPath,
+        label: basename(repositoryPath),
+        repositoryPath
+      })), {
+        placeHolder: 'Choose the repository used by Difftale composers',
+        title: 'Difftale: Select Repository'
+      }
+    )
+
+    if (!selection) return
+
+    this.#selectedRepositoryPath = selection.repositoryPath
+
+    this.#selectedBaseBranch = undefined
+
+    this.#activeBranchContext = undefined
+
+    await this.#sendBranchStatus()
+  }
+
+  async #selectBaseBranch(): Promise<void> {
+    const context = await this.#getBranchContext()
+
+    if (!context) return
+
+    const branches = await this.#repository.getBranches(context.repositoryPath)
+
+    const selection = await vscode.window.showQuickPick(
+      branches.map(branch => ({
+        description: branch === context.baseBranch ? 'Current base' : undefined,
+        label: branch
+      })), {
+        placeHolder: 'Choose the branch to compare against',
+        title: 'Difftale: Select Pull Request Base'
+      }
+    )
+
+    if (!selection) return
+
+    this.#selectedBaseBranch = selection.label
+
+    this.#activeBranchContext = undefined
+
+    await this.#sendBranchStatus()
   }
 
   async #sendBranchStatus(): Promise<void> {
     try {
-      const context = await this.#getContext()
+      const context = await this.#getBranchContext()
 
       if (context) {
         const settings = getCommitGenerationSettings()
 
-        const normalizedBaseBranch = context.generation.baseBranch.replace(
-          /^origin\//,
-          '',
+        const normalizedBaseBranch = context.baseBranch.replace(
+          /^origin\//, ''
         )
 
         await this.#view?.webview.postMessage({
-          baseBranch: context.generation.baseBranch,
+          baseBranch: context.baseBranch,
           canCreatePullRequest:
-            context.generation.currentBranch !== normalizedBaseBranch,
-          currentBranch: context.generation.currentBranch,
+            context.currentBranch !== normalizedBaseBranch,
+          currentBranch: context.currentBranch,
           maximumHeaderLengthCharacters: settings.maximumHeaderLengthCharacters,
-          type: 'context',
+          repositoryName: basename(context.repositoryPath),
+          repositoryPath: context.repositoryPath,
+          type: 'context'
         })
 
+        await this.#sendDraft(
+          await this.#loadDraft(context.repositoryPath, context.currentBranch)
+        )
+
         await this.#sendStatus(
-          context.generation.currentBranch === normalizedBaseBranch
-            ? 'Create a feature branch before opening a pull request.'
-            : 'Ready to draft from the current branch.',
-          context.generation.currentBranch === normalizedBaseBranch ? 'warning' : 'info',
+          context.currentBranch === normalizedBaseBranch ?
+            'Create a feature branch before opening a pull request.' :
+            'Ready to draft from the current branch.', context.currentBranch === normalizedBaseBranch ? 'warning' : 'info'
         )
       }
     } catch (error) {
       await this.#sendStatus(
-        error instanceof Error ? error.message : 'Unable to read branch context.',
-        'error',
+        error instanceof Error ? error.message : 'Unable to read branch context.', 'error'
       )
     }
   }
@@ -261,9 +419,8 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
         {
           cancellable: true,
           location: vscode.ProgressLocation.Notification,
-          title: 'Difftale is creating a pull request draft',
-        },
-        async (_progress, cancellationToken) => {
+          title: 'Difftale is creating a pull request draft'
+        }, async (_progress, cancellationToken) => {
           const context = await this.#getContext()
 
           if (!context) {
@@ -271,8 +428,10 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
           }
 
           if (!context.generation.diff.trim()) {
+            const branchRange = `${context.generation.currentBranch} and ${context.generation.baseBranch}`
+
             await vscode.window.showWarningMessage(
-              `No committed changes were found between ${context.generation.currentBranch} and ${context.generation.baseBranch}.`,
+              `No committed changes were found between ${branchRange}.`
             )
 
             return
@@ -282,14 +441,14 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
 
           const models = await vscode.lm.selectChatModels({
             family: settings.modelFamily,
-            vendor: 'copilot',
+            vendor: 'copilot'
           })
 
           const model = models[0]
 
           if (!model) {
             await vscode.window.showWarningMessage(
-              'No VS Code language model is available for PR generation.',
+              'No VS Code language model is available for PR generation.'
             )
 
             return
@@ -299,17 +458,15 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
             context: context.generation,
             countTokens: prompt => model.countTokens(prompt, cancellationToken),
             maximumInputTokens: model.maxInputTokens,
-            settings,
+            settings
           })
 
           const response = await model.sendRequest(
             [
               vscode.LanguageModelChatMessage.User(
-                fittedPrompt.prompt,
-              ),
-            ],
-            {},
-            cancellationToken,
+                fittedPrompt.prompt
+              )
+            ], {}, cancellationToken
           )
 
           let responseText = ''
@@ -322,7 +479,7 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
 
           if (!draft) {
             await vscode.window.showWarningMessage(
-              'The language model returned an invalid PR draft. Try generating again.',
+              'The language model returned an invalid PR draft. Try generating again.'
             )
 
             return
@@ -332,23 +489,26 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
 
           if (!validation.valid) {
             await vscode.window.showWarningMessage(
-              `The generated PR title is invalid: ${validation.errors.join(' ')}`,
+              `The generated PR title is invalid: ${validation.errors.join(' ')}`
             )
 
             return
           }
 
-          await this.#saveDraft(draft)
+          await this.#saveDraft(
+            draft, context.repositoryPath, context.generation.currentBranch
+          )
 
           await this.#sendDraft(draft)
 
-          await this.#sendStatus(
-            fittedPrompt.truncated
-              ? `Draft generated from a model-sized portion of the diff for ${context.generation.currentBranch} → ${context.generation.baseBranch}.`
-              : `Draft generated for ${context.generation.currentBranch} → ${context.generation.baseBranch}.`,
-            'success',
-          )
-        },
+          const branchRange = `${context.generation.currentBranch} → ${context.generation.baseBranch}`
+
+          const status = fittedPrompt.truncated ?
+            `Draft generated from a model-sized portion of the diff for ${branchRange}.` :
+            `Draft generated for ${branchRange}.`
+
+          await this.#sendStatus(status, 'success')
+        }
       )
     } catch (error) {
       const message = error instanceof Error ? error.message : 'PR generation failed.'
@@ -378,7 +538,7 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
   async #create(draft: PullRequestDraft): Promise<void> {
     if (!draft.title || !draft.description) {
       await vscode.window.showWarningMessage(
-        'A PR title and description are required.',
+        'A PR title and description are required.'
       )
 
       return
@@ -389,7 +549,7 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
 
     if (!validation.valid) {
       await vscode.window.showWarningMessage(
-        `Fix the PR title before creating it: ${validation.errors.join(' ')}`,
+        `Fix the PR title before creating it: ${validation.errors.join(' ')}`
       )
 
       return
@@ -402,9 +562,8 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
         {
           cancellable: true,
           location: vscode.ProgressLocation.Notification,
-          title: 'Difftale is creating the pull request',
-        },
-        async (_progress, cancellationToken) => {
+          title: 'Difftale is creating the pull request'
+        }, async (_progress, cancellationToken) => {
           const context = await this.#getContext()
 
           if (!context) {
@@ -420,7 +579,7 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
           this.#outputChannel.appendLine('')
 
           this.#outputChannel.appendLine(
-            `[pull request] ${context.generation.currentBranch} → ${context.generation.baseBranch}`,
+            `[pull request] ${context.generation.currentBranch} → ${context.generation.baseBranch}`
           )
 
           this.#outputChannel.show(true)
@@ -432,24 +591,24 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
                 currentBranch: context.generation.currentBranch,
                 description: draft.description,
                 repositoryPath: context.repositoryPath,
-                title: draft.title,
-              },
-              {
+                title: draft.title
+              }, {
                 abortSignal: abortController.signal,
-                onOutput: output => { this.#outputChannel.append(output); },
-              },
+                onOutput: output => {
+                  this.#outputChannel.append(output)
+                }
+              }
             )
 
             if (!result.succeeded) {
               const detail = result.output || 'GitHub CLI did not create the PR.'
 
               await vscode.window.showErrorMessage(
-                `Difftale could not create the PR. ${detail}`,
+                `Difftale could not create the PR. ${detail}`
               )
 
               await this.#sendStatus(
-                'PR creation failed. See Difftale Git output.',
-                'error',
+                'PR creation failed. See Difftale Git output.', 'error'
               )
 
               return
@@ -459,8 +618,7 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
 
             if (result.url) {
               const selection = await vscode.window.showInformationMessage(
-                'Difftale created the pull request.',
-                'Open Pull Request',
+                'Difftale created the pull request.', 'Open Pull Request'
               )
 
               if (selection === 'Open Pull Request') {
@@ -468,13 +626,13 @@ export class PullRequestComposerProvider implements vscode.WebviewViewProvider {
               }
             } else {
               await vscode.window.showInformationMessage(
-                'Difftale created the pull request.',
+                'Difftale created the pull request.'
               )
             }
           } finally {
             cancellationDisposable.dispose()
           }
-        },
+        }
       )
     } catch (error) {
       const message = getCreationErrorMessage(error)

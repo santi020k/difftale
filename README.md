@@ -14,7 +14,8 @@ repetitive workflows faster while keeping every meaningful Git action explicit.
 ## Highlights
 
 - **Generate Conventional Commits** — create up to five editable commit-message
-  drafts from staged changes using a language model available through VS Code.
+  drafts from staged changes using a language model available through VS Code,
+  with a local fallback when model generation is unavailable.
 - **Compose commits manually** — write and validate Conventional Commits without
   enabling AI.
 - **Draft pull requests** — generate or write an editable title and Markdown
@@ -53,10 +54,10 @@ syntax before using a message. It never stages changes automatically.
 
 Open the **Pull Request Composer** to write or generate a title and Markdown
 description from the commits and diff between the current branch and its
-detected base branch.
+detected or selected base branch.
 
-Drafts are saved in VS Code workspace state. You can copy a draft or create the
-pull request explicitly with an installed and authenticated
+Drafts are saved per repository and branch in VS Code workspace state. You can
+copy a draft or create the pull request explicitly with an installed and authenticated
 [GitHub CLI](https://cli.github.com/). Difftale does not push the branch for you.
 
 ### Browse a file's revisions
@@ -121,6 +122,10 @@ Open VS Code settings and search for `Difftale`.
 | `difftale.modelFamily` | First available model | Preferred VS Code model family |
 | `difftale.customInstructions` | `[]` | Project-specific generation guidance |
 | `difftale.draftCount` | `3` | Number of generated alternatives (`1`–`5`) |
+
+In workspaces containing more than one Git repository, select the repository
+from either composer. The Pull Request Composer also lets you change its base
+branch before generating or creating a pull request.
 
 ## Privacy and safety
 

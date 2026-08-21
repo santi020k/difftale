@@ -58,6 +58,11 @@ export interface FileNavigationState {
   targets: RevisionTarget[]
 }
 
+export interface FileHistoryActionTarget {
+  absoluteFilePath: string
+  revisionHash: string
+}
+
 export interface GitHook {
   exists: boolean
   name: 'pre-commit' | 'pre-push'

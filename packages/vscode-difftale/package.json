@@ -1,7 +1,7 @@
 {
   "name": "vscode-difftale",
   "displayName": "Difftale",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "description": "AI-crafted commits, pull request drafts, and effortless file history.",
   "publisher": "santi020k",
@@ -17,8 +17,8 @@
     "build": "node scripts/build.cjs",
     "clean": "rm -rf dist coverage difftale.vsix",
     "dev": "node scripts/build.cjs --watch",
-    "lint": "eslint src tests --no-warn-ignored",
-    "lint:fix": "eslint src tests --fix --no-warn-ignored",
+    "lint": "eslint src tests --no-warn-ignored --max-warnings=0",
+    "lint:fix": "eslint src tests --fix --no-warn-ignored --max-warnings=0",
     "package": "pnpm run build && node scripts/vsce-package.cjs",
     "publish:ext": "pnpm run package && pnpm run publish:vsce && pnpm run publish:ovsx",
     "publish:vsce": "pnpm dlx @vscode/vsce publish -i difftale.vsix --skip-duplicate --pat \"$VSCE_PAT\"",
@@ -102,6 +102,16 @@
       {
         "command": "difftale.openFileRevision",
         "title": "Difftale: Open File Revision"
+      },
+      {
+        "command": "difftale.copyRevisionHash",
+        "title": "Difftale: Copy Revision Hash",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "difftale.openRevisionOnRemote",
+        "title": "Difftale: Open Revision on Remote",
+        "icon": "$(link-external)"
       }
     ],
     "configuration": {
@@ -283,6 +293,18 @@
           "command": "difftale.showGitOutput",
           "group": "navigation",
           "when": "view == difftale.gitOperations"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "difftale.copyRevisionHash",
+          "group": "inline@1",
+          "when": "view == difftale.currentFileHistory && viewItem == difftaleCommittedRevision"
+        },
+        {
+          "command": "difftale.openRevisionOnRemote",
+          "group": "inline@2",
+          "when": "view == difftale.currentFileHistory && viewItem == difftaleCommittedRevision"
         }
       ]
     }

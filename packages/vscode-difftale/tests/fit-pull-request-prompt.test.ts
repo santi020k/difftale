@@ -8,18 +8,17 @@ const settings = {
   customInstructions: [],
   draftCount: 3,
   maximumDiffLengthCharacters: 60_000,
-  maximumHeaderLengthCharacters: 72,
+  maximumHeaderLengthCharacters: 72
 }
 
 const context = {
   baseBranch: 'origin/main',
   commitSubjects: ['feat(pr): add composer'],
   currentBranch: 'feature/composer',
-  diff: 'changed-line\n'.repeat(5_000),
+  diff: 'changed-line\n'.repeat(5_000)
 }
 
-const countTokens = (prompt: string): Promise<number> =>
-  Promise.resolve(Math.ceil(prompt.length / 4))
+const countTokens = (prompt: string): Promise<number> => Promise.resolve(Math.ceil(prompt.length / 4))
 
 describe('fitPullRequestPrompt', () => {
   test('truncates the diff until the prompt fits the selected model', async () => {
@@ -28,11 +27,11 @@ describe('fitPullRequestPrompt', () => {
       context,
       countTokens,
       maximumInputTokens,
-      settings,
+      settings
     })
 
     await expect(countTokens(result.prompt)).resolves.toBeLessThanOrEqual(
-      maximumInputTokens - MODEL_PROMPT_TOKEN_HEADROOM_COUNT,
+      maximumInputTokens - MODEL_PROMPT_TOKEN_HEADROOM_COUNT
     )
     expect(result.includedDiffLengthCharacters).toBeGreaterThan(0)
     expect(result.includedDiffLengthCharacters).toBeLessThan(context.diff.length)
@@ -42,13 +41,13 @@ describe('fitPullRequestPrompt', () => {
   test('keeps the complete diff when it fits', async () => {
     const smallContext = {
       ...context,
-      diff: 'one small change',
+      diff: 'one small change'
     }
     const result = await fitPullRequestPrompt({
       context: smallContext,
       countTokens,
       maximumInputTokens: 10_000,
-      settings,
+      settings
     })
 
     expect(result.includedDiffLengthCharacters).toBe(smallContext.diff.length)

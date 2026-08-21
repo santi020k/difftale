@@ -4,9 +4,10 @@ import { type GitRepository } from '@santi020k/difftale-core'
 
 import * as vscode from 'vscode'
 
+import { getCommitUrl } from './utils/get-commit-url'
 import {
   STATUS_BAR_PRIORITY,
-  WORKING_REVISION_LABEL,
+  WORKING_REVISION_LABEL
 } from './constants'
 import { resolveRepositoryPath } from './repository-resolver'
 import { type RevisionContentProvider } from './revision-content-provider'
@@ -28,8 +29,7 @@ export class FileHistoryController implements vscode.Disposable {
     this.#provider = provider
 
     this.#statusBarItem = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Left,
-      STATUS_BAR_PRIORITY,
+      vscode.StatusBarAlignment.Left, STATUS_BAR_PRIORITY
     )
 
     this.#statusBarItem.command = 'difftale.showFileHistory'
@@ -56,11 +56,7 @@ export class FileHistoryController implements vscode.Disposable {
     const headUri = this.#getTargetUri(state, headTarget)
 
     await vscode.commands.executeCommand(
-      'vscode.diff',
-      headUri,
-      vscode.Uri.file(absoluteFilePath),
-      `${basename(absoluteFilePath)} · ${headTarget.label} ↔ ${WORKING_REVISION_LABEL}`,
-      { preview: true },
+      'vscode.diff', headUri, vscode.Uri.file(absoluteFilePath), `${basename(absoluteFilePath)} · ${headTarget.label} ↔ ${WORKING_REVISION_LABEL}`, { preview: true }
     )
   }
 
@@ -68,15 +64,51 @@ export class FileHistoryController implements vscode.Disposable {
     this.#statusBarItem.dispose()
   }
 
+  public copyRevisionHash = async (commitHash: string): Promise<void> => {
+    await vscode.env.clipboard.writeText(commitHash)
+
+    await vscode.window.showInformationMessage(
+      `Copied commit ${commitHash.slice(0, 12)}.`
+    )
+  }
+
+  public openRevisionOnRemote = async (
+    absoluteFilePath: string,
+    commitHash: string
+  ): Promise<void> => {
+    const repositoryPath = await resolveRepositoryPath(
+      this.#repository, vscode.Uri.file(absoluteFilePath)
+    )
+
+    if (!repositoryPath) {
+      await vscode.window.showErrorMessage('Difftale could not find a Git repository.')
+
+      return
+    }
+
+    const remoteUrl = await this.#repository.getRemoteUrl(repositoryPath)
+    const commitUrl = remoteUrl ? getCommitUrl(remoteUrl, commitHash) : undefined
+
+    if (!commitUrl) {
+      await vscode.window.showWarningMessage(
+        'Difftale could not determine a web URL for this repository.'
+      )
+
+      return
+    }
+
+    await vscode.env.openExternal(vscode.Uri.parse(commitUrl))
+  }
+
   public getNavigationState = async (
     resourceUri?: vscode.Uri,
-    silent = false,
+    silent = false
   ): Promise<FileNavigationState | undefined> => {
     const absoluteFilePath = this.#resolveFilePath(resourceUri)
 
-    return absoluteFilePath
-      ? this.#loadState(absoluteFilePath, true, silent)
-      : undefined
+    return absoluteFilePath ?
+      this.#loadState(absoluteFilePath, true, silent) :
+      undefined
   }
 
   public newer = async (resourceUri?: vscode.Uri): Promise<void> => {
@@ -101,7 +133,7 @@ export class FileHistoryController implements vscode.Disposable {
       this.#statusBarItem.hide()
 
       await vscode.window.showTextDocument(vscode.Uri.file(absoluteFilePath), {
-        preview: true,
+        preview: true
       })
 
       return
@@ -143,7 +175,7 @@ export class FileHistoryController implements vscode.Disposable {
 
   public openAtIndex = async (
     resourceUri: vscode.Uri,
-    targetIndex: number,
+    targetIndex: number
   ): Promise<void> => {
     const state = await this.getNavigationState(resourceUri)
     const target = state?.targets[targetIndex]
@@ -178,14 +210,14 @@ export class FileHistoryController implements vscode.Disposable {
       const revision = target.revision
 
       return {
-        description: revision
-          ? `${revision.author} · ${new Date(revision.authoredAt).toLocaleString()}`
-          : 'Uncommitted changes',
-        detail: revision
-          ? `${revision.shortHash}${revision.body ? ` · ${revision.body}` : ''}`
-          : absoluteFilePath,
+        description: revision ?
+          `${revision.author} · ${new Date(revision.authoredAt).toLocaleString()}` :
+          'Uncommitted changes',
+        detail: revision ?
+          `${revision.shortHash}${revision.body ? ` · ${revision.body}` : ''}` :
+          absoluteFilePath,
         label: target.kind === 'working' ? '$(edit) Working Tree' : `$(git-commit) ${target.label}`,
-        targetIndex,
+        targetIndex
       }
     })
 
@@ -193,7 +225,7 @@ export class FileHistoryController implements vscode.Disposable {
       matchOnDescription: true,
       matchOnDetail: true,
       placeHolder: 'Search commits that changed this file',
-      title: `Difftale: ${basename(absoluteFilePath)} History`,
+      title: `Difftale: ${basename(absoluteFilePath)} History`
     })
 
     if (!selectedItem) {
@@ -215,16 +247,14 @@ export class FileHistoryController implements vscode.Disposable {
     }
 
     return this.#provider.createRevisionUri(
-      state.absoluteFilePath,
-      state.repositoryPath,
-      target.revision,
+      state.absoluteFilePath, state.repositoryPath, target.revision
     )
   }
 
   async #loadState(
     absoluteFilePath: string,
     forceReload = false,
-    silent = false,
+    silent = false
   ): Promise<FileNavigationState | undefined> {
     if (!forceReload) {
       const existingState = this.#navigationStates.get(absoluteFilePath)
@@ -235,8 +265,7 @@ export class FileHistoryController implements vscode.Disposable {
     }
 
     const repositoryPath = await resolveRepositoryPath(
-      this.#repository,
-      vscode.Uri.file(absoluteFilePath),
+      this.#repository, vscode.Uri.file(absoluteFilePath)
     )
 
     if (!repositoryPath) {
@@ -249,33 +278,32 @@ export class FileHistoryController implements vscode.Disposable {
       const history = await this.#repository.getFileHistory(repositoryPath, absoluteFilePath)
 
       const hasWorkingChanges = await this.#repository.hasWorkingChanges(
-        repositoryPath,
-        absoluteFilePath,
+        repositoryPath, absoluteFilePath
       )
 
       const targets: RevisionTarget[] = [
-        ...(hasWorkingChanges
-          ? [
+        ...(hasWorkingChanges ?
+          [
               {
                 filePath: absoluteFilePath,
                 kind: 'working',
-                label: WORKING_REVISION_LABEL,
-              } satisfies RevisionTarget,
-            ]
-          : []),
+                label: WORKING_REVISION_LABEL
+              } satisfies RevisionTarget
+          ] :
+          []),
         ...history.map(revision => ({
           filePath: revision.filePath,
           kind: 'git',
           label: `${revision.shortHash} · ${revision.subject}`,
-          revision,
-        }) satisfies RevisionTarget),
+          revision
+        }) satisfies RevisionTarget)
       ]
 
       const state: FileNavigationState = {
         absoluteFilePath,
         repositoryPath,
         selectedIndex: -1,
-        targets,
+        targets
       }
 
       this.#navigationStates.set(absoluteFilePath, state)
@@ -302,18 +330,14 @@ export class FileHistoryController implements vscode.Disposable {
       ({
         filePath: rightTarget.filePath,
         kind: 'empty',
-        label: 'File Creation',
+        label: 'File Creation'
       } satisfies RevisionTarget)
 
     const leftUri = this.#getTargetUri(state, leftTarget)
     const rightUri = this.#getTargetUri(state, rightTarget)
 
     await vscode.commands.executeCommand(
-      'vscode.diff',
-      leftUri,
-      rightUri,
-      `${basename(state.absoluteFilePath)} · ${leftTarget.label} ↔ ${rightTarget.label}`,
-      { preview: true },
+      'vscode.diff', leftUri, rightUri, `${basename(state.absoluteFilePath)} · ${leftTarget.label} ↔ ${rightTarget.label}`, { preview: true }
     )
 
     this.#statusBarItem.text = `$(history) ${state.selectedIndex + 1}/${state.targets.length}`

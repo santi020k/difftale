@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest'
 import {
   formatConventionalCommit,
   parseConventionalCommit,
-  validateConventionalCommit,
+  validateConventionalCommit
 } from '../src/index.js'
 
 describe('Conventional Commit utilities', () => {
@@ -14,15 +14,15 @@ describe('Conventional Commit utilities', () => {
       footer: 'BREAKING CHANGE: checkout sessions now require an identifier',
       scope: 'checkout',
       summary: 'preserve cart state during payment redirects',
-      type: 'feat',
+      type: 'feat'
     })
 
     expect(message).toBe(
       [
         'feat(checkout)!: preserve cart state during payment redirects',
         'Persist the checkout session before redirecting.',
-        'BREAKING CHANGE: checkout sessions now require an identifier',
-      ].join('\n\n'),
+        'BREAKING CHANGE: checkout sessions now require an identifier'
+      ].join('\n\n')
     )
   })
 
@@ -31,8 +31,8 @@ describe('Conventional Commit utilities', () => {
       [
         'fix(history): follow renamed files',
         'Resolve the path used by each historical revision.',
-        'Refs: #42',
-      ].join('\n\n'),
+        'Refs: #42'
+      ].join('\n\n')
     )
 
     expect(parsedCommit).toEqual({
@@ -41,13 +41,13 @@ describe('Conventional Commit utilities', () => {
       footer: 'Refs: #42',
       scope: 'history',
       summary: 'follow renamed files',
-      type: 'fix',
+      type: 'fix'
     })
   })
 
   test('rejects invalid types, punctuation, casing, and oversized headers', () => {
     const result = validateConventionalCommit('feature(core): Add parsing.', {
-      maximumHeaderLengthCharacters: 20,
+      maximumHeaderLengthCharacters: 20
     })
 
     expect(result.valid).toBe(false)
@@ -55,7 +55,7 @@ describe('Conventional Commit utilities', () => {
       'Type "feature" is not allowed.',
       'Header exceeds 20 characters.',
       'Summary must not end with a period.',
-      'Summary must begin with a lowercase character.',
+      'Summary must begin with a lowercase character.'
     ])
   })
 
@@ -64,7 +64,7 @@ describe('Conventional Commit utilities', () => {
 
     expect(result).toEqual({
       errors: ['Breaking commits must include a BREAKING CHANGE footer.'],
-      valid: false,
+      valid: false
     })
   })
 })

@@ -16,12 +16,11 @@ export class Uri {
     this.scheme = components.scheme
   }
 
-  public static file = (filePath: string): Uri =>
-    new Uri({
-      fsPath: filePath,
-      path: filePath,
-      scheme: 'file',
-    })
+  public static file = (filePath: string): Uri => new Uri({
+    fsPath: filePath,
+    path: filePath,
+    scheme: 'file'
+  })
 
   public static from = (components: {
     path: string

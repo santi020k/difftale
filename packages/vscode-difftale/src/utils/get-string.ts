@@ -8,7 +8,7 @@ export const getString = (record: Record<string, unknown>, key: string): string 
 
 export const getOptionalBoolean = (
   record: Record<string, unknown>,
-  key: string,
+  key: string
 ): boolean | undefined => {
   const value = record[key]
 
@@ -17,7 +17,7 @@ export const getOptionalBoolean = (
 
 export const getRecordArray = (
   record: Record<string, unknown>,
-  key: string,
+  key: string
 ): Record<string, unknown>[] => {
   const value = record[key]
 

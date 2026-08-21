@@ -1,12 +1,16 @@
 export const getCommitComposerHtml = (
   contentSecurityPolicySource: string,
-  nonce: string,
-  refreshIntervalMilliseconds: number,
-): string => `<!DOCTYPE html>
+  nonce: string
+): string => {
+  const stylePolicy = `style-src ${contentSecurityPolicySource} 'nonce-${nonce}'`
+  const scriptPolicy = `script-src 'nonce-${nonce}'`
+  const contentSecurityPolicy = `default-src 'none'; ${stylePolicy}; ${scriptPolicy};`
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${contentSecurityPolicySource} 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
+  <meta http-equiv="Content-Security-Policy" content="${contentSecurityPolicy}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style nonce="${nonce}">
     body {
@@ -61,11 +65,22 @@ export const getCommitComposerHtml = (
     }
     .file-row:hover { background: var(--vscode-list-hoverBackground); }
     .file-copy {
+      background: transparent;
+      border: 0;
+      color: inherit;
+      cursor: pointer;
       display: grid;
+      font: inherit;
       gap: 1px;
       min-width: 0;
       overflow: hidden;
+      padding: 0;
+      text-align: left;
       white-space: nowrap;
+    }
+    .file-copy:focus-visible {
+      outline: 1px solid var(--vscode-focusBorder);
+      outline-offset: 2px;
     }
     .file-name {
       font-weight: 500;
@@ -254,10 +269,46 @@ export const getCommitComposerHtml = (
       margin-top: 10px;
       padding: 5px 8px;
     }
+    .composer-context {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .composer-context button {
+      background: transparent;
+      border: 0;
+      color: var(--vscode-textLink-foreground);
+      min-height: auto;
+      overflow: hidden;
+      padding: 2px 0;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .draft-navigation {
+      align-items: center;
+      color: var(--vscode-descriptionForeground);
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin: -4px 0 10px;
+    }
+    .draft-navigation button {
+      min-height: 26px;
+      padding: 2px 8px;
+    }
+    .validation {
+      color: var(--vscode-inputValidation-errorForeground, var(--vscode-errorForeground));
+      line-height: 1.35;
+      margin: -6px 0 10px;
+    }
     #push { margin-top: 14px; width: 100%; }
   </style>
 </head>
 <body>
+  <div class="composer-context">
+    <button id="repository" title="Select repository" type="button">Select repository</button>
+  </div>
   <div id="commit-form">
   <div class="field">
     <div class="label-row">
@@ -266,9 +317,15 @@ export const getCommitComposerHtml = (
     </div>
     <input id="title" placeholder="feat(checkout): preserve cart state" type="text">
   </div>
+  <p class="validation" id="validation" aria-live="polite" hidden></p>
   <div class="field">
     <label for="description">Description</label>
     <textarea id="description" placeholder="Explain what changed and why"></textarea>
+  </div>
+  <div class="draft-navigation" id="draft-navigation" hidden>
+    <button aria-label="Previous generated draft" id="previous-draft" type="button">←</button>
+    <span id="draft-position">1 of 1</span>
+    <button aria-label="Next generated draft" id="next-draft" type="button">→</button>
   </div>
   <div class="actions">
     <button id="generate" type="button">Generate with AI</button>
@@ -326,12 +383,18 @@ export const getCommitComposerHtml = (
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi()
     const commitForm = document.getElementById('commit-form')
+    const repositoryButton = document.getElementById('repository')
     const titleInput = document.getElementById('title')
     const descriptionInput = document.getElementById('description')
     const titleCount = document.getElementById('title-count')
     const generateButton = document.getElementById('generate')
     const commitButton = document.getElementById('commit')
     const clearButton = document.getElementById('clear')
+    const validationElement = document.getElementById('validation')
+    const draftNavigation = document.getElementById('draft-navigation')
+    const draftPosition = document.getElementById('draft-position')
+    const previousDraftButton = document.getElementById('previous-draft')
+    const nextDraftButton = document.getElementById('next-draft')
     const stageAllButton = document.getElementById('stage-all')
     const unstageAllButton = document.getElementById('unstage-all')
     const unstagedSection = document.getElementById('unstaged-section')
@@ -362,6 +425,9 @@ export const getCommitComposerHtml = (
     let aheadCount = 0
     let canPush = false
     let busy = false
+    let commitValid = false
+    let draftOptions = []
+    let selectedDraftIndex = 0
 
     const draft = () => ({
       description: descriptionInput.value,
@@ -372,7 +438,10 @@ export const getCommitComposerHtml = (
       const value = draft()
       const hasDraft = Boolean(value.title.trim() || value.description.trim())
       generateButton.disabled = busy || stagedCount === 0
-      commitButton.disabled = busy || stagedCount === 0 || !value.title.trim()
+      generateButton.title = stagedCount === 0
+        ? 'Stage a file with +, or select Stage all, before generating'
+        : 'Generate a commit draft from staged changes'
+      commitButton.disabled = busy || stagedCount === 0 || !commitValid
       clearButton.disabled = busy || !hasDraft
       pushButton.disabled = busy || !canPush
       document.querySelectorAll('[data-git-action]').forEach(button => {
@@ -392,14 +461,11 @@ export const getCommitComposerHtml = (
       updateControls()
     }
 
-    const previousDraft = vscode.getState()
-    if (previousDraft) {
-      titleInput.value = previousDraft.title || ''
-      descriptionInput.value = previousDraft.description || ''
-    }
-
     titleInput.addEventListener('input', persist)
     descriptionInput.addEventListener('input', persist)
+    repositoryButton.addEventListener('click', () => {
+      vscode.postMessage({ type: 'selectRepository' })
+    })
     stageAllButton.addEventListener('click', () => {
       vscode.postMessage({ type: 'stageFiles', paths: unstagedFilePaths })
     })
@@ -423,6 +489,23 @@ export const getCommitComposerHtml = (
       persist()
     })
 
+    const selectDraft = index => {
+      const selectedDraft = draftOptions[index]
+      if (!selectedDraft) return
+      selectedDraftIndex = index
+      titleInput.value = selectedDraft.title
+      descriptionInput.value = selectedDraft.description
+      draftPosition.textContent = (index + 1) + ' of ' + draftOptions.length
+      persist()
+    }
+
+    previousDraftButton.addEventListener('click', () => {
+      selectDraft((selectedDraftIndex - 1 + draftOptions.length) % draftOptions.length)
+    })
+    nextDraftButton.addEventListener('click', () => {
+      selectDraft((selectedDraftIndex + 1) % draftOptions.length)
+    })
+
     const renderFileList = (container, filePaths, actionType, actionLabel, symbol) => {
       container.replaceChildren()
       filePaths.forEach(filePath => {
@@ -434,9 +517,14 @@ export const getCommitComposerHtml = (
         const row = document.createElement('div')
         row.className = 'file-row'
         row.setAttribute('role', 'listitem')
-        const copy = document.createElement('div')
+        const copy = document.createElement('button')
         copy.className = 'file-copy'
-        copy.title = filePath
+        copy.type = 'button'
+        copy.title = 'Open ' + filePath
+        copy.setAttribute('aria-label', copy.title)
+        copy.addEventListener('click', () => {
+          vscode.postMessage({ type: 'openFile', path: filePath })
+        })
         const name = document.createElement('span')
         name.className = 'file-name'
         name.textContent = fileName
@@ -550,6 +638,21 @@ export const getCommitComposerHtml = (
         descriptionInput.value = message.description
         vscode.setState(draft())
       }
+      if (message.type === 'draftOptions') {
+        draftOptions = message.drafts
+        selectedDraftIndex = 0
+        draftNavigation.hidden = draftOptions.length <= 1
+        selectDraft(0)
+      }
+      if (message.type === 'validation') {
+        if (
+          message.title !== titleInput.value ||
+          message.description !== descriptionInput.value
+        ) return
+        commitValid = message.valid
+        validationElement.textContent = message.errors.join(' ')
+        validationElement.hidden = message.errors.length === 0
+      }
       if (message.type === 'context') {
         stagedFilePaths = message.stagedFilePaths
         unstagedFilePaths = message.unstagedFilePaths
@@ -557,6 +660,8 @@ export const getCommitComposerHtml = (
         aheadCount = message.aheadCount
         const hasWorkingChanges = unstagedFilePaths.length > 0 || stagedCount > 0
         titleInput.maxLength = message.maximumHeaderLengthCharacters
+        repositoryButton.textContent = message.repositoryName + ' · ' + message.branch
+        repositoryButton.title = message.repositoryPath
         renderRepositoryState(message, hasWorkingChanges)
         unstagedCountElement.textContent = String(unstagedFilePaths.length)
         stagedCountElement.textContent = String(stagedCount)
@@ -600,11 +705,7 @@ export const getCommitComposerHtml = (
 
     updateControls()
     vscode.postMessage({ type: 'ready' })
-    setInterval(() => {
-      if (document.visibilityState === 'visible' && !busy) {
-        vscode.postMessage({ type: 'refresh' })
-      }
-    }, ${refreshIntervalMilliseconds})
   </script>
 </body>
 </html>`
+}

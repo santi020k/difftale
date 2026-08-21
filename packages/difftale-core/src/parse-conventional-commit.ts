@@ -22,6 +22,6 @@ export const parseConventionalCommit = (message: string): ConventionalCommit | u
     footer: hasFooter ? lastSection : undefined,
     scope: match.groups.scope,
     summary: match.groups.summary ?? '',
-    type: match.groups.type ?? '',
+    type: match.groups.type ?? ''
   }
 }

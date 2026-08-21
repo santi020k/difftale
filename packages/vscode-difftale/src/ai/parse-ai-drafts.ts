@@ -1,17 +1,16 @@
 import {
   type ConventionalCommit,
   formatConventionalCommit,
-  parseConventionalCommit,
+  parseConventionalCommit
 } from '@santi020k/difftale-core'
 
 import { getOptionalBoolean, getRecordArray, getString } from '../utils/get-string'
 import { isRecord } from '../utils/is-record'
 
-const removeCodeFence = (response: string): string =>
-  response
-    .trim()
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/\s*```$/, '')
+const removeCodeFence = (response: string): string => response
+  .trim()
+  .replace(/^```(?:json)?\s*/i, '')
+  .replace(/\s*```$/, '')
 
 const parseJsonDrafts = (response: string): ConventionalCommit[] => {
   try {
@@ -36,8 +35,8 @@ const parseJsonDrafts = (response: string): ConventionalCommit[] => {
           footer: getString(draft, 'footer'),
           scope: getString(draft, 'scope'),
           summary,
-          type,
-        },
+          type
+        }
       ]
     })
   } catch {
@@ -45,11 +44,10 @@ const parseJsonDrafts = (response: string): ConventionalCommit[] => {
   }
 }
 
-const parsePlainTextDrafts = (response: string): ConventionalCommit[] =>
-  removeCodeFence(response)
-    .split(/\n-{3,}\n/)
-    .map(message => parseConventionalCommit(message))
-    .filter(commit => commit !== undefined)
+const parsePlainTextDrafts = (response: string): ConventionalCommit[] => removeCodeFence(response)
+  .split(/\n-{3,}\n/)
+  .map(message => parseConventionalCommit(message))
+  .filter(commit => commit !== undefined)
 
 export const parseAiDrafts = (response: string): ConventionalCommit[] => {
   const jsonDrafts = parseJsonDrafts(response)

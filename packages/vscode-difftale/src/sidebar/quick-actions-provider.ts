@@ -16,25 +16,27 @@ const SECONDARY_ACTIONS: readonly QuickAction[] = [
     command: 'difftale.showFileHistory',
     description: 'Search revisions of the active file',
     icon: 'history',
-    label: 'Browse File History',
+    label: 'Browse File History'
   },
   {
     command: 'difftale.showGitOutput',
     description: 'Inspect complete Git and hook output',
     icon: 'output',
-    label: 'Show Git Output',
-  },
+    label: 'Show Git Output'
+  }
 ]
 
 const getPushAction = (
-  branchSyncStatus: GitBranchSyncStatus,
+  branchSyncStatus: GitBranchSyncStatus
 ): QuickAction | undefined => {
   if (branchSyncStatus.publishRequired && branchSyncStatus.remoteName) {
+    const remoteBranch = `${branchSyncStatus.remoteName}/${branchSyncStatus.branch}`
+
     return {
       command: 'difftale.push',
-      description: `${branchSyncStatus.branch} → ${branchSyncStatus.remoteName}/${branchSyncStatus.branch} · set upstream`,
+      description: `${branchSyncStatus.branch} → ${remoteBranch} · set upstream`,
       icon: 'cloud-upload',
-      label: 'Publish Branch',
+      label: 'Publish Branch'
     }
   }
 
@@ -44,15 +46,15 @@ const getPushAction = (
 
   const commitLabel = branchSyncStatus.aheadCount === 1 ? 'commit' : 'commits'
 
-  const destination = branchSyncStatus.upstreamBranch
-    ? `${branchSyncStatus.branch} → ${branchSyncStatus.upstreamBranch}`
-    : branchSyncStatus.branch
+  const destination = branchSyncStatus.upstreamBranch ?
+    `${branchSyncStatus.branch} → ${branchSyncStatus.upstreamBranch}` :
+    branchSyncStatus.branch
 
   return {
     command: 'difftale.push',
     description: `${destination} · run pre-push checks`,
     icon: 'cloud-upload',
-    label: `Push ${branchSyncStatus.aheadCount} ${commitLabel}`,
+    label: `Push ${branchSyncStatus.aheadCount} ${commitLabel}`
   }
 }
 
@@ -62,7 +64,7 @@ class QuickActionTreeItem extends vscode.TreeItem {
 
     this.command = {
       command: action.command,
-      title: action.label,
+      title: action.label
     }
 
     this.description = action.description
@@ -74,8 +76,7 @@ class QuickActionTreeItem extends vscode.TreeItem {
 }
 
 export class QuickActionsProvider
-  implements vscode.Disposable, vscode.TreeDataProvider<QuickActionTreeItem>
-{
+implements vscode.Disposable, vscode.TreeDataProvider<QuickActionTreeItem> {
   readonly #changeEmitter = new vscode.EventEmitter<void>()
   readonly #repository: GitRepository
 
@@ -99,9 +100,9 @@ export class QuickActionsProvider
     const branchSyncStatus = await this.#repository.getBranchSyncStatus(repositoryPath)
     const pushAction = getPushAction(branchSyncStatus)
 
-    const actions = pushAction
-      ? [pushAction, ...SECONDARY_ACTIONS]
-      : SECONDARY_ACTIONS
+    const actions = pushAction ?
+      [pushAction, ...SECONDARY_ACTIONS] :
+      SECONDARY_ACTIONS
 
     return actions.map(action => new QuickActionTreeItem(action))
   }

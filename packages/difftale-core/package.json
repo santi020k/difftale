@@ -1,6 +1,6 @@
 {
   "name": "@santi020k/difftale-core",
-  "version": "0.1.0",
+  "version": "0.9.0",
   "description": "Conventional Commit and Git history primitives for Difftale.",
   "type": "module",
   "main": "./dist/index.js",
@@ -20,8 +20,8 @@
     "build": "tsc --project tsconfig.build.json",
     "clean": "rm -rf dist coverage",
     "dev": "tsc --project tsconfig.build.json --watch",
-    "lint": "eslint src tests --no-warn-ignored",
-    "lint:fix": "eslint src tests --fix --no-warn-ignored",
+    "lint": "eslint src tests --no-warn-ignored --max-warnings=0",
+    "lint:fix": "eslint src tests --fix --no-warn-ignored --max-warnings=0",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"

@@ -1,6 +1,6 @@
 import type {
   CommitGenerationSettings,
-  PullRequestGenerationContext,
+  PullRequestGenerationContext
 } from '../types'
 
 interface BuildPullRequestPromptOptions {
@@ -10,14 +10,14 @@ interface BuildPullRequestPromptOptions {
 
 export const buildPullRequestPrompt = ({
   context,
-  settings,
+  settings
 }: BuildPullRequestPromptOptions): string => {
   const truncatedDiff = context.diff.slice(0, settings.maximumDiffLengthCharacters)
 
   const customInstructions =
-    settings.customInstructions.length > 0
-      ? settings.customInstructions.map(instruction => `- ${instruction}`).join('\n')
-      : '- No additional instructions.'
+    settings.customInstructions.length > 0 ?
+      settings.customInstructions.map(instruction => `- ${instruction}`).join('\n') :
+      '- No additional instructions.'
 
   return [
     'Create a title and description for a GitHub pull request.',
@@ -37,6 +37,6 @@ export const buildPullRequestPrompt = ({
     'Additional instructions:',
     customInstructions,
     'Pull request diff:',
-    truncatedDiff,
+    truncatedDiff
   ].join('\n\n')
 }

@@ -12,7 +12,7 @@ describe('parseAiDrafts', () => {
           footer: '',
           scope: 'checkout',
           summary: 'preserve cart state',
-          type: 'feat',
+          type: 'feat'
         },
         {
           body: 'Persist state before redirecting.',
@@ -20,9 +20,9 @@ describe('parseAiDrafts', () => {
           footer: '',
           scope: 'checkout',
           summary: 'preserve cart state',
-          type: 'feat',
-        },
-      ],
+          type: 'feat'
+        }
+      ]
     })
 
     expect(parseAiDrafts(response)).toEqual([
@@ -32,8 +32,8 @@ describe('parseAiDrafts', () => {
         footer: '',
         scope: 'checkout',
         summary: 'preserve cart state',
-        type: 'feat',
-      },
+        type: 'feat'
+      }
     ])
   })
 
@@ -43,7 +43,7 @@ describe('parseAiDrafts', () => {
       '',
       'Resolve the historical path before loading content.',
       '---',
-      'refactor(history): simplify revision lookup',
+      'refactor(history): simplify revision lookup'
     ].join('\n')
 
     expect(parseAiDrafts(response)).toHaveLength(2)

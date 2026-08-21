@@ -1,7 +1,7 @@
 export {
   DEFAULT_COMMIT_TYPES,
   DEFAULT_HEADER_LENGTH_CHARACTERS,
-  RECENT_COMMIT_LIMIT_COUNT,
+  RECENT_COMMIT_LIMIT_COUNT
 } from './constants.js'
 export { formatConventionalCommit } from './format-conventional-commit.js'
 export { GitRepository } from './git/git-repository.js'
@@ -15,6 +15,6 @@ export type {
   GitBranchSyncStatus,
   GitCommandRunner,
   GitRepositoryOptions,
-  GitRevision,
+  GitRevision
 } from './types.js'
 export { validateConventionalCommit } from './validate-conventional-commit.js'

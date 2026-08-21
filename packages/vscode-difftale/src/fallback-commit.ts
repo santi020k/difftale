@@ -13,11 +13,7 @@ const getExtension = (filePath: string): string => {
 
 export const createFallbackCommit = (filePaths: readonly string[]): ConventionalCommit => {
   const scope = getScopeFromPaths(filePaths)
-
-  const allDocumentation = filePaths.every(filePath =>
-    DOCUMENTATION_EXTENSIONS.has(getExtension(filePath)),
-  )
-
+  const allDocumentation = filePaths.every(filePath => DOCUMENTATION_EXTENSIONS.has(getExtension(filePath)))
   const allTests = filePaths.every(filePath => TEST_FILE_PATTERN.test(filePath))
   let type = 'chore'
 
@@ -34,6 +30,6 @@ export const createFallbackCommit = (filePaths: readonly string[]): Conventional
     breaking: false,
     scope,
     summary: `update ${subjectTarget}`,
-    type,
+    type
   }
 }

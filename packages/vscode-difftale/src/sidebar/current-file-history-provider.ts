@@ -6,55 +6,63 @@ import type { RevisionTarget } from '../types'
 
 const getOriginalFilePath = (
   activeUri: vscode.Uri | undefined,
-  revisionProvider: RevisionContentProvider,
+  revisionProvider: RevisionContentProvider
 ): string | undefined => {
   if (!activeUri) {
     return undefined
   }
 
-  return activeUri.scheme === 'file'
-    ? activeUri.fsPath
-    : revisionProvider.getOriginalFilePath(activeUri)
+  return activeUri.scheme === 'file' ?
+    activeUri.fsPath :
+    revisionProvider.getOriginalFilePath(activeUri)
 }
 
 class FileHistoryTreeItem extends vscode.TreeItem {
+  public readonly absoluteFilePath: string
+  public readonly revisionHash: string | undefined
+
   public constructor(
     target: RevisionTarget,
     absoluteFilePath: string,
-    targetIndex: number,
+    targetIndex: number
   ) {
     const revision = target.revision
 
     super(
-      target.kind === 'working' ? 'Working Tree' : revision?.subject ?? target.label,
-      vscode.TreeItemCollapsibleState.None,
+      target.kind === 'working' ? 'Working Tree' : revision?.subject ?? target.label, vscode.TreeItemCollapsibleState.None
     )
+
+    this.absoluteFilePath = absoluteFilePath
+
+    this.revisionHash = revision?.hash
 
     this.command = {
       arguments: [vscode.Uri.file(absoluteFilePath), targetIndex],
       command: 'difftale.openFileRevision',
-      title: 'Open File Revision',
+      title: 'Open File Revision'
     }
 
-    this.description = revision
-      ? `${revision.shortHash} · ${new Date(revision.authoredAt).toLocaleDateString()}`
-      : 'Uncommitted'
+    this.contextValue = revision ? 'difftaleCommittedRevision' : undefined
+
+    this.description = revision ?
+      `${revision.shortHash} · ${new Date(revision.authoredAt).toLocaleDateString()}` :
+      'Uncommitted'
 
     this.iconPath = new vscode.ThemeIcon(
-      target.kind === 'working' ? 'edit' : 'git-commit',
+      target.kind === 'working' ? 'edit' : 'git-commit'
     )
 
-    this.tooltip = revision
-      ? new vscode.MarkdownString(
-          [
-            `**${revision.subject}**`,
-            '',
-            revision.body || 'No commit body.',
-            '',
-            `${revision.author} · ${new Date(revision.authoredAt).toLocaleString()}`,
-          ].join('\n'),
-        )
-      : 'Compare the working file with HEAD.'
+    this.tooltip = revision ?
+      new vscode.MarkdownString(
+        [
+          `**${revision.subject}**`,
+          '',
+          revision.body || 'No commit body.',
+          '',
+          `${revision.author} · ${new Date(revision.authoredAt).toLocaleString()}`
+        ].join('\n')
+      ) :
+      'Compare the working file with HEAD.'
   }
 }
 
@@ -69,10 +77,9 @@ class FileHistoryMessageTreeItem extends vscode.TreeItem {
 }
 
 export class CurrentFileHistoryProvider
-  implements
+implements
     vscode.Disposable,
-    vscode.TreeDataProvider<FileHistoryTreeItem | FileHistoryMessageTreeItem>
-{
+    vscode.TreeDataProvider<FileHistoryTreeItem | FileHistoryMessageTreeItem> {
   readonly #changeEmitter = new vscode.EventEmitter<void>()
 
   readonly #controller: FileHistoryController
@@ -82,7 +89,7 @@ export class CurrentFileHistoryProvider
 
   public constructor(
     controller: FileHistoryController,
-    revisionProvider: RevisionContentProvider,
+    revisionProvider: RevisionContentProvider
   ) {
     this.#controller = controller
 
@@ -102,34 +109,30 @@ export class CurrentFileHistoryProvider
     if (!originalFilePath) {
       return [
         new FileHistoryMessageTreeItem(
-          'Open a tracked file',
-          'Its revisions will appear here',
-        ),
+          'Open a tracked file', 'Its revisions will appear here'
+        )
       ]
     }
 
     const state = await this.#controller.getNavigationState(
-      vscode.Uri.file(originalFilePath),
-      true,
+      vscode.Uri.file(originalFilePath), true
     )
 
     if (!state || state.targets.length === 0) {
       return [
         new FileHistoryMessageTreeItem(
-          'No committed revisions',
-          'The active file is not tracked yet',
-        ),
+          'No committed revisions', 'The active file is not tracked yet'
+        )
       ]
     }
 
     return state.targets.map(
-      (target, targetIndex) =>
-        new FileHistoryTreeItem(target, state.absoluteFilePath, targetIndex),
+      (target, targetIndex) => new FileHistoryTreeItem(target, state.absoluteFilePath, targetIndex)
     )
   }
 
   public getTreeItem = (
-    treeItem: FileHistoryTreeItem | FileHistoryMessageTreeItem,
+    treeItem: FileHistoryTreeItem | FileHistoryMessageTreeItem
   ): FileHistoryTreeItem | FileHistoryMessageTreeItem => treeItem
 
   public refresh = (): void => {

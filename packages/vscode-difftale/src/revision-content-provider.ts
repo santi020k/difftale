@@ -19,25 +19,22 @@ export class RevisionContentProvider implements vscode.TextDocumentContentProvid
     this.#repository = repository
   }
 
-  public createEmptyUri = (absoluteFilePath: string, repositoryPath: string): vscode.Uri =>
-    this.#createUri({
-      absoluteFilePath,
-      repositoryPath,
-    })
+  public createEmptyUri = (absoluteFilePath: string, repositoryPath: string): vscode.Uri => this.#createUri({
+    absoluteFilePath,
+    repositoryPath
+  })
 
   public createRevisionUri = (
     absoluteFilePath: string,
     repositoryPath: string,
-    revision: GitRevision,
-  ): vscode.Uri =>
-    this.#createUri({
-      absoluteFilePath,
-      repositoryPath,
-      revision,
-    })
+    revision: GitRevision
+  ): vscode.Uri => this.#createUri({
+    absoluteFilePath,
+    repositoryPath,
+    revision
+  })
 
-  public getOriginalFilePath = (uri: vscode.Uri): string | undefined =>
-    this.#documents.get(uri.query)?.absoluteFilePath
+  public getOriginalFilePath = (uri: vscode.Uri): string | undefined => this.#documents.get(uri.query)?.absoluteFilePath
 
   public provideTextDocumentContent = async (uri: vscode.Uri): Promise<string> => {
     const document = this.#documents.get(uri.query)
@@ -56,14 +53,14 @@ export class RevisionContentProvider implements vscode.TextDocumentContentProvid
 
     this.#documents.set(identifier, document)
 
-    const label = document.revision
-      ? `${document.revision.filePath}@${document.revision.shortHash}`
-      : 'empty'
+    const label = document.revision ?
+      `${document.revision.filePath}@${document.revision.shortHash}` :
+      'empty'
 
     return vscode.Uri.from({
       path: `/${label}`,
       query: identifier,
-      scheme: REVISION_SCHEME,
+      scheme: REVISION_SCHEME
     })
   }
 }

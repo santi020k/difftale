@@ -1,13 +1,18 @@
 export const getPullRequestComposerHtml = (
   contentSecurityPolicySource: string,
-  nonce: string,
-): string => `<!DOCTYPE html>
+  nonce: string
+): string => {
+  const stylePolicy = `style-src ${contentSecurityPolicySource} 'nonce-${nonce}'`
+  const scriptPolicy = `script-src 'nonce-${nonce}'`
+  const contentSecurityPolicy = `default-src 'none'; ${stylePolicy}; ${scriptPolicy};`
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta
     http-equiv="Content-Security-Policy"
-    content="default-src 'none'; style-src ${contentSecurityPolicySource} 'nonce-${nonce}'; script-src 'nonce-${nonce}';"
+    content="${contentSecurityPolicy}"
   >
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pull Request Composer</title>
@@ -115,6 +120,21 @@ export const getPullRequestComposerHtml = (
       white-space: nowrap;
     }
 
+    .context button {
+      background: transparent;
+      border: 0;
+      color: var(--vscode-textLink-foreground);
+      min-height: auto;
+      padding: 2px;
+    }
+
+    #repository-context {
+      margin-left: auto;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .actions {
       display: grid;
       gap: 6px;
@@ -213,6 +233,8 @@ export const getPullRequestComposerHtml = (
   <div class="context" id="context" hidden>
     <span class="context-icon" aria-hidden="true">⑂</span>
     <span id="branch-context"></span>
+    <button id="base-branch" title="Select base branch" type="button"></button>
+    <button id="repository-context" title="Select repository" type="button"></button>
   </div>
   <div class="field">
     <div class="label-row">
@@ -250,6 +272,8 @@ export const getPullRequestComposerHtml = (
     const descriptionInput = document.getElementById('description')
     const contextElement = document.getElementById('context')
     const branchContextElement = document.getElementById('branch-context')
+    const baseBranchButton = document.getElementById('base-branch')
+    const repositoryButton = document.getElementById('repository-context')
     const titleCountElement = document.getElementById('title-count')
     const statusElement = document.getElementById('status')
     const statusIconElement = statusElement.querySelector('.status-icon')
@@ -297,17 +321,16 @@ export const getPullRequestComposerHtml = (
       updateControls()
     }
 
-    const previousDraft = vscode.getState()
-
-    if (previousDraft) {
-      titleInput.value = previousDraft.title || ''
-      descriptionInput.value = previousDraft.description || ''
-    }
-
     updateControls()
 
     titleInput.addEventListener('input', persistDraft)
     descriptionInput.addEventListener('input', persistDraft)
+    baseBranchButton.addEventListener('click', () => {
+      vscode.postMessage({ type: 'selectBaseBranch' })
+    })
+    repositoryButton.addEventListener('click', () => {
+      vscode.postMessage({ type: 'selectRepository' })
+    })
 
     generateButton.addEventListener('click', () => {
       vscode.postMessage({ type: 'generate' })
@@ -341,7 +364,10 @@ export const getPullRequestComposerHtml = (
 
       if (message.type === 'context') {
         titleInput.maxLength = message.maximumHeaderLengthCharacters
-        branchContextElement.textContent = message.currentBranch + ' → ' + message.baseBranch
+        branchContextElement.textContent = message.currentBranch + ' →'
+        baseBranchButton.textContent = message.baseBranch
+        repositoryButton.textContent = message.repositoryName
+        repositoryButton.title = message.repositoryPath
         contextElement.hidden = false
         canCreatePullRequest = message.canCreatePullRequest
         updateControls()
@@ -367,3 +393,4 @@ export const getPullRequestComposerHtml = (
   </script>
 </body>
 </html>`
+}

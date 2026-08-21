@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 
 import type {
   PullRequestCreationRequest,
-  PullRequestCreationResult,
+  PullRequestCreationResult
 } from '../types'
 
 interface GitHubPullRequestServiceOptions {
@@ -10,87 +10,83 @@ interface GitHubPullRequestServiceOptions {
   onOutput?: (output: string) => void
 }
 
-const getPullRequestUrl = (output: string): string | undefined =>
-  output
-    .split(/\s+/)
-    .find(value => /^https:\/\/github\.com\/.+\/pull\/\d+$/.test(value))
+const getPullRequestUrl = (output: string): string | undefined => output
+  .split(/\s+/)
+  .find(value => /^https:\/\/github\.com\/.+\/pull\/\d+$/.test(value))
 
 export class GitHubPullRequestService {
   public create = async (
     request: PullRequestCreationRequest,
-    options: GitHubPullRequestServiceOptions = {},
-  ): Promise<PullRequestCreationResult> =>
-    new Promise((resolve, reject) => {
-      const outputChunks: string[] = []
-      let settled = false
+    options: GitHubPullRequestServiceOptions = {}
+  ): Promise<PullRequestCreationResult> => new Promise((resolve, reject) => {
+    const outputChunks: string[] = []
+    let settled = false
 
-      const childProcess = spawn(
-        'gh',
-        [
-          'pr',
-          'create',
-          '--title',
-          request.title,
-          '--body',
-          request.description,
-          '--base',
-          request.baseBranch,
-          '--head',
-          request.currentBranch,
-        ],
-        {
-          cwd: request.repositoryPath,
-          env: process.env,
-          stdio: ['ignore', 'pipe', 'pipe'],
-        },
-      )
+    const childProcess = spawn(
+      'gh', [
+        'pr',
+        'create',
+        '--title',
+        request.title,
+        '--body',
+        request.description,
+        '--base',
+        request.baseBranch,
+        '--head',
+        request.currentBranch
+      ], {
+        cwd: request.repositoryPath,
+        env: process.env,
+        stdio: ['ignore', 'pipe', 'pipe']
+      }
+    )
 
-      const appendOutput = (chunk: Buffer): void => {
-        const output = chunk.toString()
+    const appendOutput = (chunk: Buffer): void => {
+      const output = chunk.toString()
 
-        outputChunks.push(output)
+      outputChunks.push(output)
 
-        options.onOutput?.(output)
+      options.onOutput?.(output)
+    }
+
+    const handleAbort = (): void => {
+      childProcess.kill()
+    }
+
+    options.abortSignal?.addEventListener('abort', handleAbort, { once: true })
+
+    childProcess.stdout.on('data', appendOutput)
+
+    childProcess.stderr.on('data', appendOutput)
+
+    childProcess.on('error', error => {
+      if (settled) {
+        return
       }
 
-      const handleAbort = (): void => {
-        childProcess.kill()
+      settled = true
+
+      options.abortSignal?.removeEventListener('abort', handleAbort)
+
+      reject(error)
+    })
+
+    childProcess.on('close', exitCode => {
+      if (settled) {
+        return
       }
 
-      options.abortSignal?.addEventListener('abort', handleAbort, { once: true })
+      settled = true
 
-      childProcess.stdout.on('data', appendOutput)
+      options.abortSignal?.removeEventListener('abort', handleAbort)
 
-      childProcess.stderr.on('data', appendOutput)
+      const output = outputChunks.join('').trim()
 
-      childProcess.on('error', error => {
-        if (settled) {
-          return
-        }
-
-        settled = true
-
-        options.abortSignal?.removeEventListener('abort', handleAbort)
-
-        reject(error)
-      })
-
-      childProcess.on('close', exitCode => {
-        if (settled) {
-          return
-        }
-
-        settled = true
-
-        options.abortSignal?.removeEventListener('abort', handleAbort)
-
-        const output = outputChunks.join('').trim()
-
-        resolve({
-          output,
-          succeeded: exitCode === 0,
-          url: getPullRequestUrl(output),
-        })
+      resolve({
+        output,
+        succeeded: exitCode === 0,
+        url: getPullRequestUrl(output)
       })
     })
+  })
 }

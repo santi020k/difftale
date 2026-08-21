@@ -4,9 +4,9 @@ export default defineConfig({
   test: {
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
+      reporter: ['text', 'html']
     },
     environment: 'node',
-    include: ['tests/**/*.test.ts'],
-  },
+    include: ['tests/**/*.test.ts']
+  }
 })

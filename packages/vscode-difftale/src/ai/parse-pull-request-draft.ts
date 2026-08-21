@@ -2,14 +2,13 @@ import type { PullRequestDraft } from '../types'
 import { getString } from '../utils/get-string'
 import { isRecord } from '../utils/is-record'
 
-const removeCodeFence = (response: string): string =>
-  response
-    .trim()
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/\s*```$/, '')
+const removeCodeFence = (response: string): string => response
+  .trim()
+  .replace(/^```(?:json)?\s*/i, '')
+  .replace(/\s*```$/, '')
 
 export const parsePullRequestDraft = (
-  response: string,
+  response: string
 ): PullRequestDraft | undefined => {
   try {
     const parsedResponse: unknown = JSON.parse(removeCodeFence(response))

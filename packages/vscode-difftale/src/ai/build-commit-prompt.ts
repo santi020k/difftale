@@ -1,4 +1,8 @@
 import type { CommitGenerationSettings, CommitProjectContext } from '../types'
+import {
+  fitDiffToCharacterLimit,
+  getDiffFilePaths
+} from '../utils/fit-diff-to-character-limit'
 
 interface BuildCommitPromptOptions {
   context: CommitProjectContext
@@ -9,14 +13,18 @@ interface BuildCommitPromptOptions {
 export const buildCommitPrompt = ({
   context,
   diff,
-  settings,
+  settings
 }: BuildCommitPromptOptions): string => {
-  const truncatedDiff = diff.slice(0, settings.maximumDiffLengthCharacters)
+  const truncatedDiff = fitDiffToCharacterLimit(
+    diff, settings.maximumDiffLengthCharacters
+  )
+
+  const changedFilePaths = getDiffFilePaths(diff)
 
   const customInstructions =
-    settings.customInstructions.length > 0
-      ? settings.customInstructions.map(instruction => `- ${instruction}`).join('\n')
-      : '- No additional instructions.'
+    settings.customInstructions.length > 0 ?
+      settings.customInstructions.map(instruction => `- ${instruction}`).join('\n') :
+      '- No additional instructions.'
 
   return [
     'Create alternative Conventional Commit drafts for the staged Git diff.',
@@ -35,7 +43,9 @@ export const buildCommitPrompt = ({
     context.recentSubjects.join('\n') || 'none',
     'Additional instructions:',
     customInstructions,
+    'Changed files:',
+    changedFilePaths.join('\n') || 'none',
     'Staged diff:',
-    truncatedDiff,
+    truncatedDiff
   ].join('\n\n')
 }

@@ -663,10 +663,14 @@ code {
 
 .faq-list {
   border-top: 1px solid hsl(var(--line));
+  gap: 0;
 }
 
 .faq-list details {
+  background: transparent;
+  border: 0;
   border-bottom: 1px solid hsl(var(--line));
+  border-radius: 0;
   padding: 22px 0;
 }
 
@@ -760,8 +764,23 @@ code {
   padding: 34px 0 48px;
 }
 
-.site-footer p {
+.footer-copy {
+  display: grid;
+  gap: 5px;
   text-align: center;
+}
+
+.footer-copy p {
+  text-align: center;
+}
+
+.footer-copy a {
+  color: hsl(var(--ink-soft));
+  font-weight: 600;
+}
+
+.footer-copy a:hover {
+  color: hsl(var(--brand));
 }
 
 .footer-links {
@@ -880,7 +899,8 @@ code {
     grid-template-columns: 1fr;
   }
 
-  .site-footer p {
+  .footer-copy,
+  .footer-copy p {
     text-align: left;
   }
 

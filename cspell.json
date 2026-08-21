@@ -1,0 +1,18 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "astrojs",
+    "difftale",
+    "esbuild",
+    "santi",
+    "vitest"
+  ],
+  "ignorePaths": [
+    "node_modules/**",
+    "pnpm-lock.yaml",
+    "coverage/**",
+    "dist/**",
+    "out/**"
+  ]
+}

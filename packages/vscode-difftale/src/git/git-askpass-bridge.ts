@@ -60,49 +60,47 @@ const isAskpassRequest = (value: unknown): value is AskpassRequest => {
   }
 
   return (
-    'prompt' in value
-    && typeof value.prompt === 'string'
-    && 'token' in value
-    && typeof value.token === 'string'
+    'prompt' in value &&
+    typeof value.prompt === 'string' &&
+    'token' in value &&
+    typeof value.token === 'string'
   )
 }
 
-const getWrapperSource = (): string =>
-  process.platform === 'win32'
-    ? [
-        '@echo off',
-        'set ELECTRON_RUN_AS_NODE=1',
-        '"%DIFFTALE_ASKPASS_NODE%" "%DIFFTALE_ASKPASS_MAIN%" "%~1"',
-        '',
-      ].join('\r\n')
-    : [
-        '#!/bin/sh',
-        'ELECTRON_RUN_AS_NODE=1 exec "$DIFFTALE_ASKPASS_NODE" "$DIFFTALE_ASKPASS_MAIN" "$@"',
-        '',
-      ].join('\n')
+const getWrapperSource = (): string => process.platform === 'win32' ?
+  [
+    '@echo off',
+    'set ELECTRON_RUN_AS_NODE=1',
+    '"%DIFFTALE_ASKPASS_NODE%" "%DIFFTALE_ASKPASS_MAIN%" "%~1"',
+    ''
+  ].join('\r\n') :
+  [
+    '#!/bin/sh',
+    'ELECTRON_RUN_AS_NODE=1 exec "$DIFFTALE_ASKPASS_NODE" "$DIFFTALE_ASKPASS_MAIN" "$@"',
+    ''
+  ].join('\n')
 
-const listen = async (server: Server): Promise<number> =>
-  new Promise((resolve, reject) => {
-    const handleError = (error: Error): void => {
-      reject(error)
+const listen = async (server: Server): Promise<number> => new Promise((resolve, reject) => {
+  const handleError = (error: Error): void => {
+    reject(error)
+  }
+
+  server.once('error', handleError)
+
+  server.listen(0, '127.0.0.1', () => {
+    server.off('error', handleError)
+
+    const address = server.address()
+
+    if (!address || typeof address === 'string') {
+      reject(new Error('Difftale could not start its Git authentication prompt.'))
+
+      return
     }
 
-    server.once('error', handleError)
-
-    server.listen(0, '127.0.0.1', () => {
-      server.off('error', handleError)
-
-      const address = server.address()
-
-      if (!address || typeof address === 'string') {
-        reject(new Error('Difftale could not start its Git authentication prompt.'))
-
-        return
-      }
-
-      resolve(address.port)
-    })
+    resolve(address.port)
   })
+})
 
 export class GitAskpassBridge {
   readonly #directoryPath: string
@@ -118,7 +116,7 @@ export class GitAskpassBridge {
     server: Server,
     sockets: Set<Socket>,
     token: string,
-    port: number,
+    port: number
   ) {
     this.#directoryPath = directoryPath
 
@@ -137,19 +135,18 @@ export class GitAskpassBridge {
       GIT_ASKPASS: executablePath,
       GIT_TERMINAL_PROMPT: '0',
       SSH_ASKPASS: executablePath,
-      SSH_ASKPASS_REQUIRE: 'force',
+      SSH_ASKPASS_REQUIRE: 'force'
     }
   }
 
   public static create = async (
-    options: GitAskpassBridgeOptions,
+    options: GitAskpassBridgeOptions
   ): Promise<GitAskpassBridge> => {
     const directoryPath = await mkdtemp(join(tmpdir(), 'difftale-askpass-'))
     const mainPath = join(directoryPath, 'askpass-main.cjs')
 
     const executablePath = join(
-      directoryPath,
-      process.platform === 'win32' ? 'askpass.cmd' : 'askpass',
+      directoryPath, process.platform === 'win32' ? 'askpass.cmd' : 'askpass'
     )
 
     const token = randomBytes(32).toString('hex')
@@ -176,12 +173,7 @@ export class GitAskpassBridge {
       const port = await listen(server)
 
       return new GitAskpassBridge(
-        directoryPath,
-        executablePath,
-        server,
-        sockets,
-        token,
-        port,
+        directoryPath, executablePath, server, sockets, token, port
       )
     } catch (error) {
       server.close()
@@ -195,7 +187,7 @@ export class GitAskpassBridge {
   static #handleConnection = (
     socket: Socket,
     token: string,
-    onPrompt: (prompt: string) => Promise<string | undefined>,
+    onPrompt: (prompt: string) => Promise<string | undefined>
   ): void => {
     let requestText = ''
 
@@ -214,7 +206,7 @@ export class GitAskpassBridge {
     socket: Socket,
     requestText: string,
     token: string,
-    onPrompt: (prompt: string) => Promise<string | undefined>,
+    onPrompt: (prompt: string) => Promise<string | undefined>
   ): Promise<void> => {
     try {
       const request: unknown = JSON.parse(requestText)
@@ -229,10 +221,10 @@ export class GitAskpassBridge {
 
       socket.end(
         JSON.stringify(
-          value === undefined
-            ? { cancelled: true }
-            : { cancelled: false, value },
-        ),
+          value === undefined ?
+            { cancelled: true } :
+            { cancelled: false, value }
+        )
       )
     } catch {
       socket.end(JSON.stringify({ cancelled: true }))
