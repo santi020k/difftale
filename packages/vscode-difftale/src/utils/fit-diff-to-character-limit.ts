@@ -7,9 +7,7 @@ const splitDiffSections = (diff: string): string[] => {
     return [diff]
   }
 
-  return sectionStarts.map((start, index) =>
-    diff.slice(start, sectionStarts[index + 1] ?? diff.length),
-  )
+  return sectionStarts.map((start, index) => diff.slice(start, sectionStarts[index + 1] ?? diff.length))
 }
 
 export const getDiffFilePaths = (diff: string): string[] => [
@@ -19,8 +17,8 @@ export const getDiffFilePaths = (diff: string): string[] => [
         const filePath = match.groups?.filePath?.replaceAll(/^"|"$/gu, '')
 
         return filePath && filePath !== '/dev/null' ? [filePath] : []
-      }),
-  ),
+      })
+  )
 ]
 
 const truncateAtLineBoundary = (value: string, maximumLength: number): string => {
@@ -36,7 +34,7 @@ const truncateAtLineBoundary = (value: string, maximumLength: number): string =>
 
 export const fitDiffToCharacterLimit = (
   diff: string,
-  maximumLength: number,
+  maximumLength: number
 ): string => {
   if (diff.length <= maximumLength) {
     return diff
@@ -55,8 +53,7 @@ export const fitDiffToCharacterLimit = (
     const remainingSections = sections.length - index
 
     const maximumSectionLength = Math.max(
-      sectionBudget,
-      Math.floor(remainingBudget / remainingSections),
+      sectionBudget, Math.floor(remainingBudget / remainingSections)
     )
 
     const selected = truncateAtLineBoundary(section, maximumSectionLength)
@@ -67,7 +64,6 @@ export const fitDiffToCharacterLimit = (
   })
 
   return `${selectedSections.filter(Boolean).join('\n')}${TRUNCATION_MARKER}`.slice(
-    0,
-    maximumLength,
+    0, maximumLength
   )
 }

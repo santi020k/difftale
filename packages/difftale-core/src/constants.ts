@@ -15,5 +15,5 @@ export const DEFAULT_COMMIT_TYPES = [
   'build',
   'ci',
   'chore',
-  'revert',
+  'revert'
 ] as const

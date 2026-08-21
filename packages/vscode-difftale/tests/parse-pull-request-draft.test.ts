@@ -6,22 +6,22 @@ describe('parsePullRequestDraft', () => {
   test('parses strict JSON and removes surrounding whitespace', () => {
     expect(
       parsePullRequestDraft(
-        '{"title":" feat(pr): add composer ","description":" ## Summary\\n- Add it "}',
-      ),
+        '{"title":" feat(pr): add composer ","description":" ## Summary\\n- Add it "}'
+      )
     ).toEqual({
       description: '## Summary\n- Add it',
-      title: 'feat(pr): add composer',
+      title: 'feat(pr): add composer'
     })
   })
 
   test('parses a fenced JSON response', () => {
     expect(
       parsePullRequestDraft(
-        '```json\n{"title":"fix(pr): preserve draft","description":"## Summary\\n- Preserve it"}\n```',
-      ),
+        '```json\n{"title":"fix(pr): preserve draft","description":"## Summary\\n- Preserve it"}\n```'
+      )
     ).toEqual({
       description: '## Summary\n- Preserve it',
-      title: 'fix(pr): preserve draft',
+      title: 'fix(pr): preserve draft'
     })
   })
 

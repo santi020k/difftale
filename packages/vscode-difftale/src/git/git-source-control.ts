@@ -21,7 +21,7 @@ interface GitExtension {
 }
 
 const getGitApiRepository = async (
-  repositoryPath: string,
+  repositoryPath: string
 ): Promise<GitApiRepository | undefined> => {
   const gitExtension = vscode.extensions.getExtension<GitExtension>('vscode.git')
 
@@ -43,15 +43,15 @@ export const getGitRepositoryPaths = async (): Promise<string[]> => {
     return []
   }
 
-  const exports = gitExtension.isActive
-    ? gitExtension.exports
-    : await gitExtension.activate()
+  const exports = gitExtension.isActive ?
+    gitExtension.exports :
+    await gitExtension.activate()
 
   return exports.getAPI(1).repositories.map(repository => repository.rootUri.fsPath)
 }
 
 export const watchGitRepositories = async (
-  listener: () => void,
+  listener: () => void
 ): Promise<vscode.Disposable> => {
   const gitExtension = vscode.extensions.getExtension<GitExtension>('vscode.git')
 
@@ -59,9 +59,9 @@ export const watchGitRepositories = async (
     return vscode.Disposable.from()
   }
 
-  const exports = gitExtension.isActive
-    ? gitExtension.exports
-    : await gitExtension.activate()
+  const exports = gitExtension.isActive ?
+    gitExtension.exports :
+    await gitExtension.activate()
 
   const api = exports.getAPI(1)
   const repositorySubscriptions = new Map<string, vscode.Disposable>()
@@ -70,8 +70,7 @@ export const watchGitRepositories = async (
     repositorySubscriptions.get(repository.rootUri.fsPath)?.dispose()
 
     repositorySubscriptions.set(
-      repository.rootUri.fsPath,
-      repository.state.onDidChange(listener),
+      repository.rootUri.fsPath, repository.state.onDidChange(listener)
     )
   }
 
@@ -105,7 +104,7 @@ export const watchGitRepositories = async (
 }
 
 export const getGitInputMessage = async (
-  repositoryPath: string,
+  repositoryPath: string
 ): Promise<string | undefined> => {
   const repository = await getGitApiRepository(repositoryPath)
 
@@ -114,7 +113,7 @@ export const getGitInputMessage = async (
 
 export const setGitInputMessage = async (
   repositoryPath: string,
-  message: string,
+  message: string
 ): Promise<boolean> => {
   const repository = await getGitApiRepository(repositoryPath)
 

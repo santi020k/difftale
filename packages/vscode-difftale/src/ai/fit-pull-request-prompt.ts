@@ -1,10 +1,10 @@
 import {
   MODEL_PROMPT_TOKEN_HEADROOM_COUNT,
-  PROMPT_BUDGET_SEARCH_ITERATION_LIMIT_COUNT,
+  PROMPT_BUDGET_SEARCH_ITERATION_LIMIT_COUNT
 } from '../constants'
 import type {
   CommitGenerationSettings,
-  PullRequestGenerationContext,
+  PullRequestGenerationContext
 } from '../types'
 
 import { buildPullRequestPrompt } from './build-pull-request-prompt'
@@ -25,27 +25,25 @@ export interface FittedPullRequestPrompt {
 const buildPromptWithDiffLength = (
   context: PullRequestGenerationContext,
   settings: CommitGenerationSettings,
-  diffLengthCharacters: number,
-): string =>
-  buildPullRequestPrompt({
-    context: {
-      ...context,
-      diff: context.diff.slice(0, diffLengthCharacters),
-    },
-    settings,
-  })
+  diffLengthCharacters: number
+): string => buildPullRequestPrompt({
+  context: {
+    ...context,
+    diff: context.diff.slice(0, diffLengthCharacters)
+  },
+  settings
+})
 
 export const fitPullRequestPrompt = async ({
   context,
   countTokens,
   maximumInputTokens,
-  settings,
+  settings
 }: FitPullRequestPromptOptions): Promise<FittedPullRequestPrompt> => {
   const tokenBudget = maximumInputTokens - MODEL_PROMPT_TOKEN_HEADROOM_COUNT
 
   const maximumDiffLengthCharacters = Math.min(
-    context.diff.length,
-    settings.maximumDiffLengthCharacters,
+    context.diff.length, settings.maximumDiffLengthCharacters
   )
 
   const promptWithoutDiff = buildPromptWithDiffLength(context, settings, 0)
@@ -66,13 +64,11 @@ export const fitPullRequestPrompt = async ({
     iterationCount < PROMPT_BUDGET_SEARCH_ITERATION_LIMIT_COUNT
   ) {
     const candidateDiffLengthCharacters = Math.floor(
-      (lowerDiffLengthCharacters + upperDiffLengthCharacters) / 2,
+      (lowerDiffLengthCharacters + upperDiffLengthCharacters) / 2
     )
 
     const candidatePrompt = buildPromptWithDiffLength(
-      context,
-      settings,
-      candidateDiffLengthCharacters,
+      context, settings, candidateDiffLengthCharacters
     )
 
     const candidateTokenCount = await countTokens(candidatePrompt)
@@ -93,6 +89,6 @@ export const fitPullRequestPrompt = async ({
   return {
     includedDiffLengthCharacters,
     prompt: fittedPrompt,
-    truncated: includedDiffLengthCharacters < context.diff.length,
+    truncated: includedDiffLengthCharacters < context.diff.length
   }
 }

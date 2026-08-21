@@ -15,15 +15,15 @@ describe('getGitFailurePresentation', () => {
           'TypeError: Cannot read properties of undefined',
           '    at Object.<anonymous> (/project/node_modules/example.js:45:18)',
           'ELIFECYCLE Command failed with exit code 1.',
-          'husky - pre-commit script failed (code 1)',
+          'husky - pre-commit script failed (code 1)'
         ].join('\n'),
-        succeeded: false,
-      },
+        succeeded: false
+      }
     })
 
     expect(presentation.title).toBe('Commit blocked during pre-commit')
     expect(presentation.summary).toBe(
-      'TypeError: Cannot read properties of undefined',
+      'TypeError: Cannot read properties of undefined'
     )
     expect(presentation.details).toContain('husky - pre-commit script failed')
   })
@@ -37,8 +37,8 @@ describe('getGitFailurePresentation', () => {
         durationMilliseconds: 200,
         exitCode: 7,
         output: 'lint failed\nhusky - pre-push script failed (code 7)\n',
-        succeeded: false,
-      },
+        succeeded: false
+      }
     })
 
     expect(presentation.title).toBe('Push blocked during pre-push')

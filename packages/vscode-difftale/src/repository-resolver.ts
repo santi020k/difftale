@@ -4,16 +4,15 @@ import type { GitRepository } from '@santi020k/difftale-core'
 
 import * as vscode from 'vscode'
 
-const getCandidateUri = (resourceUri?: vscode.Uri): vscode.Uri | undefined =>
-  [
-    resourceUri,
-    vscode.window.activeTextEditor?.document.uri,
-    vscode.workspace.workspaceFolders?.[0]?.uri,
-  ].find(candidateUri => candidateUri?.scheme === 'file')
+const getCandidateUri = (resourceUri?: vscode.Uri): vscode.Uri | undefined => [
+  resourceUri,
+  vscode.window.activeTextEditor?.document.uri,
+  vscode.workspace.workspaceFolders?.[0]?.uri
+].find(candidateUri => candidateUri?.scheme === 'file')
 
 export const resolveRepositoryPath = async (
   repository: GitRepository,
-  resourceUri?: vscode.Uri,
+  resourceUri?: vscode.Uri
 ): Promise<string | undefined> => {
   const candidateUri = getCandidateUri(resourceUri)
 
@@ -24,9 +23,9 @@ export const resolveRepositoryPath = async (
   const workspaceFolderPath = vscode.workspace.getWorkspaceFolder(candidateUri)?.uri.fsPath
 
   const candidatePath =
-    candidateUri.fsPath === workspaceFolderPath
-      ? candidateUri.fsPath
-      : dirname(candidateUri.fsPath)
+    candidateUri.fsPath === workspaceFolderPath ?
+      candidateUri.fsPath :
+      dirname(candidateUri.fsPath)
 
   try {
     return await repository.findRoot(candidatePath)

@@ -1,6 +1,6 @@
 import {
   type GitRepository,
-  validateConventionalCommit,
+  validateConventionalCommit
 } from '@santi020k/difftale-core'
 
 import * as vscode from 'vscode'
@@ -10,7 +10,7 @@ import type { GitOperationStatusProvider } from '../sidebar/git-operation-status
 import type {
   GitCommitResult,
   GitHook,
-  GitOperationResult,
+  GitOperationResult
 } from '../types'
 import { getCommitGenerationSettings } from '../utils/get-commit-generation-settings'
 
@@ -31,36 +31,34 @@ interface CompletedGitOperation {
   result: GitOperationResult
 }
 
-const getOperationLabel = (kind: 'commit' | 'push'): string =>
-  kind === 'commit' ? 'Commit' : 'Push'
+const getOperationLabel = (kind: 'commit' | 'push'): string => kind === 'commit' ? 'Commit' : 'Push'
 
 const getRunningMessage = (kind: 'commit' | 'push', hooks: readonly GitHook[]): string => {
   const detectedHookNames = hooks.filter(hook => hook.exists).map(hook => hook.name)
 
-  return detectedHookNames.length > 0
-    ? `Running ${detectedHookNames.join(' and ')}`
-    : `Running git ${kind}`
+  return detectedHookNames.length > 0 ?
+    `Running ${detectedHookNames.join(' and ')}` :
+    `Running git ${kind}`
 }
 
-const requestGitCredential = async (prompt: string): Promise<string | undefined> =>
-  vscode.window.showInputBox({
-    ignoreFocusOut: true,
-    password: /passphrase|password/iu.test(prompt),
-    prompt: prompt.trim() || 'Enter the credential requested by Git.',
-    title: 'Difftale Git authentication',
-  })
+const requestGitCredential = async (prompt: string): Promise<string | undefined> => vscode.window.showInputBox({
+  ignoreFocusOut: true,
+  password: /passphrase|password/iu.test(prompt),
+  prompt: prompt.trim() || 'Enter the credential requested by Git.',
+  title: 'Difftale Git authentication'
+})
 
 const getResultSummary = (
   operationLabel: string,
-  result: GitOperationResult,
+  result: GitOperationResult
 ): string => {
   if (result.cancelled) {
     return `${operationLabel} cancelled after ${result.durationMilliseconds}ms.`
   }
 
-  const outcome = result.succeeded
-    ? 'completed'
-    : `failed with exit code ${result.exitCode ?? 'unknown'}`
+  const outcome = result.succeeded ?
+    'completed' :
+    `failed with exit code ${result.exitCode ?? 'unknown'}`
 
   return `${operationLabel} ${outcome} after ${result.durationMilliseconds}ms.`
 }
@@ -95,9 +93,7 @@ export class DifftaleGitController {
 
     if (!message) {
       const action = await vscode.window.showWarningMessage(
-        'Write or generate a commit message before committing with Difftale.',
-        'Generate with AI',
-        'Compose',
+        'Write or generate a commit message before committing with Difftale.', 'Generate with AI', 'Compose'
       )
 
       if (action === 'Generate with AI') {
@@ -114,7 +110,7 @@ export class DifftaleGitController {
 
   public commitMessage = async (
     repositoryPath: string,
-    message: string,
+    message: string
   ): Promise<GitCommitResult> => {
     const validation = validateConventionalCommit(message, getCommitGenerationSettings())
 
@@ -122,27 +118,23 @@ export class DifftaleGitController {
       const summary = validation.errors.join(' ')
 
       await vscode.window.showErrorMessage(
-        `Difftale did not commit because the message is invalid: ${summary}`,
+        `Difftale did not commit because the message is invalid: ${summary}`
       )
 
       return {
         failure: {
           details: summary,
           summary,
-          title: 'Commit message is invalid',
+          title: 'Commit message is invalid'
         },
-        succeeded: false,
+        succeeded: false
       }
     }
 
     const hookNames: GitHook['name'][] = ['pre-commit']
 
     const operation = await this.#runOperation(
-      'commit',
-      repositoryPath,
-      ['commit', '--file=-'],
-      hookNames,
-      `${message}\n`,
+      'commit', repositoryPath, ['commit', '--file=-'], hookNames, `${message}\n`
     )
 
     const { detectedHookNames, result } = operation
@@ -152,14 +144,14 @@ export class DifftaleGitController {
     }
 
     return {
-      failure: result.succeeded
-        ? undefined
-        : getGitFailurePresentation({
-            hookNames: detectedHookNames,
-            kind: 'commit',
-            result,
-          }),
-      succeeded: result.succeeded,
+      failure: result.succeeded ?
+        undefined :
+        getGitFailurePresentation({
+          hookNames: detectedHookNames,
+          kind: 'commit',
+          result
+        }),
+      succeeded: result.succeeded
     }
   }
 
@@ -175,20 +167,17 @@ export class DifftaleGitController {
     const branchSyncStatus = await this.#repository.getBranchSyncStatus(repositoryPath)
 
     const arguments_ =
-      branchSyncStatus.publishRequired && branchSyncStatus.remoteName
-        ? [
-            'push',
-            '--set-upstream',
-            branchSyncStatus.remoteName,
-            branchSyncStatus.branch,
-          ]
-        : ['push']
+      branchSyncStatus.publishRequired && branchSyncStatus.remoteName ?
+        [
+          'push',
+          '--set-upstream',
+          branchSyncStatus.remoteName,
+          branchSyncStatus.branch
+        ] :
+        ['push']
 
     await this.#runOperation(
-      'push',
-      repositoryPath,
-      arguments_,
-      ['pre-push'],
+      'push', repositoryPath, arguments_, ['pre-push']
     )
   }
 
@@ -201,15 +190,13 @@ export class DifftaleGitController {
     repositoryPath: string,
     arguments_: readonly string[],
     hookNames: readonly GitHook['name'][],
-    input?: string,
+    input?: string
   ): Promise<CompletedGitOperation> {
     const hooks = await detectGitHooks(repositoryPath, hookNames)
     const detectedHookNames = hooks.filter(hook => hook.exists).map(hook => hook.name)
 
     const operationIdentifier = this.#statusProvider.start(
-      kind,
-      repositoryPath,
-      detectedHookNames,
+      kind, repositoryPath, detectedHookNames
     )
 
     const operationLabel = getOperationLabel(kind)
@@ -218,13 +205,13 @@ export class DifftaleGitController {
     this.#outputChannel.appendLine('')
 
     this.#outputChannel.appendLine(
-      `[${new Date(startedAt).toLocaleTimeString()}] ${operationLabel} · ${repositoryPath}`,
+      `[${new Date(startedAt).toLocaleTimeString()}] ${operationLabel} · ${repositoryPath}`
     )
 
     this.#outputChannel.appendLine(
-      detectedHookNames.length > 0
-        ? `Detected hooks: ${detectedHookNames.join(', ')}`
-        : `No executable ${hookNames.join(' or ')} hook detected.`,
+      detectedHookNames.length > 0 ?
+        `Detected hooks: ${detectedHookNames.join(', ')}` :
+        `No executable ${hookNames.join(' or ')} hook detected.`
     )
 
     this.#outputChannel.appendLine(`$ git ${arguments_.join(' ')}`)
@@ -233,11 +220,10 @@ export class DifftaleGitController {
       {
         cancellable: true,
         location: vscode.ProgressLocation.Notification,
-        title: `${operationLabel} with Difftale`,
-      },
-      async (progress, cancellationToken) => {
+        title: `${operationLabel} with Difftale`
+      }, async (progress, cancellationToken) => {
         progress.report({
-          message: getRunningMessage(kind, hooks),
+          message: getRunningMessage(kind, hooks)
         })
 
         const abortController = new AbortController()
@@ -252,15 +238,16 @@ export class DifftaleGitController {
               arguments: arguments_,
               input,
               kind,
-              repositoryPath,
-            },
-            {
+              repositoryPath
+            }, {
               abortSignal: abortController.signal,
-              onOutput: output => { this.#outputChannel.append(output); },
-              onPrompt: kind === 'push'
-                ? requestGitCredential
-                : undefined,
-            },
+              onOutput: output => {
+                this.#outputChannel.append(output)
+              },
+              onPrompt: kind === 'push' ?
+                requestGitCredential :
+                undefined
+            }
           )
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Git could not start.'
@@ -272,12 +259,12 @@ export class DifftaleGitController {
             durationMilliseconds: Date.now() - startedAt,
             exitCode: null,
             output: message,
-            succeeded: false,
+            succeeded: false
           }
         } finally {
           cancellationDisposable.dispose()
         }
-      },
+      }
     )
 
     this.#outputChannel.appendLine('')
@@ -292,7 +279,7 @@ export class DifftaleGitController {
 
     this.#showResult(kind, detectedHookNames, result).catch((error: unknown) => {
       this.#outputChannel.appendLine(
-        error instanceof Error ? error.message : 'Difftale could not show the result.',
+        error instanceof Error ? error.message : 'Difftale could not show the result.'
       )
     })
 
@@ -302,7 +289,7 @@ export class DifftaleGitController {
   async #showResult(
     kind: 'commit' | 'push',
     detectedHookNames: readonly string[],
-    result: GitOperationResult,
+    result: GitOperationResult
   ): Promise<void> {
     const operationLabel = getOperationLabel(kind)
     const hookLabel = detectedHookNames.join(' and ')
@@ -315,10 +302,9 @@ export class DifftaleGitController {
 
     if (result.succeeded) {
       const action = await vscode.window.showInformationMessage(
-        hookLabel
-          ? `${operationLabel} completed. ${hookLabel} passed.`
-          : `${operationLabel} completed.`,
-        'Show Output',
+        hookLabel ?
+          `${operationLabel} completed. ${hookLabel} passed.` :
+          `${operationLabel} completed.`, 'Show Output'
       )
 
       if (action === 'Show Output') {
@@ -331,20 +317,18 @@ export class DifftaleGitController {
     const failure = getGitFailurePresentation({
       hookNames: detectedHookNames,
       kind,
-      result,
+      result
     })
 
     const action = await vscode.window.showErrorMessage(
-      `${failure.title}: ${failure.summary}`,
-      'Show Output',
-      'Copy Error',
+      `${failure.title}: ${failure.summary}`, 'Show Output', 'Copy Error'
     )
 
     if (action === 'Show Output') {
       this.showOutput()
     } else if (action === 'Copy Error') {
       await vscode.env.clipboard.writeText(
-        [failure.title, failure.summary, '', failure.details].join('\n'),
+        [failure.title, failure.summary, '', failure.details].join('\n')
       )
     }
   }

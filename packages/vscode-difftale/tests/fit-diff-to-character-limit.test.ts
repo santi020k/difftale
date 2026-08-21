@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import {
   fitDiffToCharacterLimit,
-  getDiffFilePaths,
+  getDiffFilePaths
 } from '../src/utils/fit-diff-to-character-limit'
 
 describe('fitDiffToCharacterLimit', () => {
@@ -15,7 +15,7 @@ describe('fitDiffToCharacterLimit', () => {
       'diff --git a/second.ts b/second.ts',
       '--- a/second.ts',
       '+++ b/second.ts',
-      ...Array.from({ length: 20 }, (_, index) => `+second-${index}`),
+      ...Array.from({ length: 20 }, (_, index) => `+second-${index}`)
     ].join('\n')
 
     const result = fitDiffToCharacterLimit(diff, 260)
@@ -35,7 +35,7 @@ describe('fitDiffToCharacterLimit', () => {
       '--- a/source.ts',
       '+++ b/source.ts',
       '--- /dev/null',
-      '+++ b/new-file.ts',
+      '+++ b/new-file.ts'
     ].join('\n')
 
     expect(getDiffFilePaths(diff)).toEqual(['source.ts', 'new-file.ts'])

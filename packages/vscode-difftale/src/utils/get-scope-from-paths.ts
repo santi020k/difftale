@@ -14,8 +14,8 @@ export const getScopeFromPaths = (filePaths: readonly string[]): string | undefi
     return undefined
   }
 
-  const sharedSegments = firstSegments.filter((segment, index) =>
-    pathSegments.every(segments => segments[index] === segment),
+  const sharedSegments = firstSegments.filter(
+    (segment, index) => pathSegments.every(segments => segments[index] === segment)
   )
 
   const rootIndex = sharedSegments.findIndex(segment => ROOT_FOLDER_NAMES.has(segment))

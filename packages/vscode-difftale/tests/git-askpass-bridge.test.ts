@@ -20,23 +20,21 @@ describe('GitAskpassBridge', () => {
         prompts.push(prompt)
 
         return Promise.resolve('correct horse battery staple')
-      },
+      }
     })
     bridges.push(bridge)
 
     const result = await executeFile(
-      bridge.executablePath,
-      ['Enter passphrase for key /home/user/.ssh/id_ed25519:'],
-      {
+      bridge.executablePath, ['Enter passphrase for key /home/user/.ssh/id_ed25519:'], {
         env: {
           ...process.env,
-          ...bridge.environment,
-        },
-      },
+          ...bridge.environment
+        }
+      }
     )
 
     expect(prompts).toEqual([
-      'Enter passphrase for key /home/user/.ssh/id_ed25519:',
+      'Enter passphrase for key /home/user/.ssh/id_ed25519:'
     ])
     expect(result.stdout).toBe('correct horse battery staple')
   })
@@ -45,7 +43,7 @@ describe('GitAskpassBridge', () => {
     const credentials: string[] = []
 
     const bridge = await GitAskpassBridge.create({
-      onPrompt: () => Promise.resolve(credentials[0]),
+      onPrompt: () => Promise.resolve(credentials[0])
     })
     bridges.push(bridge)
 
@@ -53,11 +51,11 @@ describe('GitAskpassBridge', () => {
       executeFile(bridge.executablePath, ['Password:'], {
         env: {
           ...process.env,
-          ...bridge.environment,
-        },
-      }),
+          ...bridge.environment
+        }
+      })
     ).rejects.toMatchObject({
-      code: 1,
+      code: 1
     })
   })
 })

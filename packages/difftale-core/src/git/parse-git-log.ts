@@ -26,42 +26,41 @@ const parseFileStatus = (statusText: string): ParsedFileStatus | undefined => {
 
   return {
     existsAtRevision: !status.startsWith('D'),
-    filePath: normalizeGitPath(filePath),
+    filePath: normalizeGitPath(filePath)
   }
 }
 
-export const parseGitLog = (output: string): GitRevision[] =>
-  output
-    .split(GIT_RECORD_SEPARATOR)
-    .map(record => record.trim())
-    .filter(Boolean)
-    .flatMap(record => {
-      const [
-        hash,
-        shortHash,
+export const parseGitLog = (output: string): GitRevision[] => output
+  .split(GIT_RECORD_SEPARATOR)
+  .map(record => record.trim())
+  .filter(Boolean)
+  .flatMap(record => {
+    const [
+      hash,
+      shortHash,
+      author,
+      authoredAt,
+      subject,
+      body = '',
+      statusText = ''
+    ] = record.split(GIT_FIELD_SEPARATOR)
+
+    const fileStatus = parseFileStatus(statusText)
+
+    if (!hash || !shortHash || !author || !authoredAt || !subject || !fileStatus) {
+      return []
+    }
+
+    return [
+      {
         author,
         authoredAt,
-        subject,
-        body = '',
-        statusText = '',
-      ] = record.split(GIT_FIELD_SEPARATOR)
-
-      const fileStatus = parseFileStatus(statusText)
-
-      if (!hash || !shortHash || !author || !authoredAt || !subject || !fileStatus) {
-        return []
+        body: body.trim(),
+        existsAtRevision: fileStatus.existsAtRevision,
+        filePath: fileStatus.filePath,
+        hash,
+        shortHash,
+        subject
       }
-
-      return [
-        {
-          author,
-          authoredAt,
-          body: body.trim(),
-          existsAtRevision: fileStatus.existsAtRevision,
-          filePath: fileStatus.filePath,
-          hash,
-          shortHash,
-          subject,
-        },
-      ]
-    })
+    ]
+  })

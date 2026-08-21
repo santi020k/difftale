@@ -6,10 +6,9 @@ import { GIT_OPERATION_HISTORY_LIMIT_COUNT } from '../constants'
 import { getGitFailurePresentation } from '../git/get-git-failure-presentation'
 import type { GitOperationRecord, GitOperationResult } from '../types'
 
-const getDurationLabel = (durationMilliseconds: number | undefined): string =>
-  durationMilliseconds === undefined
-    ? ''
-    : `${(durationMilliseconds / 1000).toFixed(1)}s`
+const getDurationLabel = (durationMilliseconds: number | undefined): string => durationMilliseconds === undefined ?
+  '' :
+  `${(durationMilliseconds / 1000).toFixed(1)}s`
 
 const getStatusDescription = (record: GitOperationRecord): string => {
   const hookLabel = record.hookNames.join(' + ')
@@ -30,8 +29,8 @@ const getStatusDescription = (record: GitOperationRecord): string => {
 
   return [
     record.failureSummary ??
-      (hookLabel ? `Blocked during ${hookLabel}` : 'Git failed'),
-    getDurationLabel(record.durationMilliseconds),
+    (hookLabel ? `Blocked during ${hookLabel}` : 'Git failed'),
+    getDurationLabel(record.durationMilliseconds)
   ]
     .filter(Boolean)
     .join(' · ')
@@ -54,7 +53,7 @@ const getStatusIcon = (phase: GitOperationRecord['phase']): vscode.ThemeIcon => 
 }
 
 const getFinishedPhase = (
-  result: GitOperationResult,
+  result: GitOperationResult
 ): GitOperationRecord['phase'] => {
   if (result.cancelled) {
     return 'cancelled'
@@ -71,7 +70,7 @@ class GitOperationTreeItem extends vscode.TreeItem {
 
     this.command = {
       command: 'difftale.showGitOutput',
-      title: 'Show Git Output',
+      title: 'Show Git Output'
     }
 
     this.contextValue = `difftale.operation.${record.phase}`
@@ -86,12 +85,12 @@ class GitOperationTreeItem extends vscode.TreeItem {
         '',
         this.description,
         '',
-        record.hookNames.length > 0
-          ? `Hooks: \`${record.hookNames.join('`, `')}\``
-          : 'No matching executable hook was detected.',
+        record.hookNames.length > 0 ?
+          `Hooks: \`${record.hookNames.join('`, `')}\`` :
+          'No matching executable hook was detected.',
         '',
-        'Select to open the complete output.',
-      ].join('\n'),
+        'Select to open the complete output.'
+      ].join('\n')
     )
   }
 }
@@ -107,10 +106,9 @@ class EmptyOperationTreeItem extends vscode.TreeItem {
 }
 
 export class GitOperationStatusProvider
-  implements
+implements
     vscode.Disposable,
-    vscode.TreeDataProvider<GitOperationTreeItem | EmptyOperationTreeItem>
-{
+    vscode.TreeDataProvider<GitOperationTreeItem | EmptyOperationTreeItem> {
   readonly #changeEmitter = new vscode.EventEmitter<void>()
 
   readonly #records: GitOperationRecord[] = []
@@ -132,13 +130,13 @@ export class GitOperationStatusProvider
 
     record.durationMilliseconds = result.durationMilliseconds
 
-    record.failureSummary = result.succeeded
-      ? undefined
-      : getGitFailurePresentation({
-          hookNames: record.hookNames,
-          kind: record.kind,
-          result,
-        }).summary
+    record.failureSummary = result.succeeded ?
+      undefined :
+      getGitFailurePresentation({
+        hookNames: record.hookNames,
+        kind: record.kind,
+        result
+      }).summary
 
     record.output = result.output
 
@@ -147,19 +145,18 @@ export class GitOperationStatusProvider
     this.#changeEmitter.fire()
   }
 
-  public getChildren = (): (GitOperationTreeItem | EmptyOperationTreeItem)[] =>
-    this.#records.length > 0
-      ? this.#records.map(record => new GitOperationTreeItem(record))
-      : [new EmptyOperationTreeItem()]
+  public getChildren = (): (GitOperationTreeItem | EmptyOperationTreeItem)[] => this.#records.length > 0 ?
+    this.#records.map(record => new GitOperationTreeItem(record)) :
+    [new EmptyOperationTreeItem()]
 
   public getTreeItem = (
-    treeItem: GitOperationTreeItem | EmptyOperationTreeItem,
+    treeItem: GitOperationTreeItem | EmptyOperationTreeItem
   ): GitOperationTreeItem | EmptyOperationTreeItem => treeItem
 
   public start = (
     kind: GitOperationRecord['kind'],
     repositoryPath: string,
-    hookNames: string[],
+    hookNames: string[]
   ): string => {
     const identifier = `${kind}-${Date.now()}`
 
@@ -171,7 +168,7 @@ export class GitOperationStatusProvider
       output: '',
       phase: 'running',
       repositoryPath,
-      startedAt: Date.now(),
+      startedAt: Date.now()
     })
 
     this.#records.splice(GIT_OPERATION_HISTORY_LIMIT_COUNT)

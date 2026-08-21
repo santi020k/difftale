@@ -21,8 +21,6 @@ const resolveCatalogVersion = packageName => {
       }
     }
   }
-
-  
 }
 
 const resolveDependencySection = section => {
@@ -50,7 +48,7 @@ try {
 
   execSync('pnpm dlx @vscode/vsce package --no-dependencies --out difftale.vsix', {
     cwd: resolve(__dirname, '..'),
-    stdio: 'inherit',
+    stdio: 'inherit'
   })
 } finally {
   writeFileSync(packagePath, originalPackageContent)

@@ -1,17 +1,19 @@
+# Managed by the santi020k PR title standard.
 name: PR Title
 
 on:
   pull_request_target:
-    types: [opened, edited, synchronize]
+    types: [opened, reopened, edited, synchronize, labeled, unlabeled]
 
 permissions:
   pull-requests: read
   statuses: write
 
 jobs:
-  lint-pr-title:
+  lint:
     name: Lint PR title
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: amannn/action-semantic-pull-request@v6
         env:
@@ -22,23 +24,17 @@ jobs:
             fix
             docs
             style
+            chore
             refactor
             perf
             test
+            ci
             build
-            ci
-            chore
             revert
-          scopes: |
-            core
-            vscode
-            ci
-            deps
-            release
           requireScope: false
           subjectPattern: ^(?![A-Z]).+$
           subjectPatternError: >
             The subject must start with a lowercase letter.
-            Example: "feat(vscode): add revision navigation"
+            Example: "feat: add repository-aware prompts"
           ignoreLabels: |
             autorelease: pending

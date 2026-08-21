@@ -6,7 +6,7 @@
   "scripts": {
     "build": "astro build && node scripts/prepare-sites.mjs",
     "dev": "astro dev",
-    "lint": "eslint . --no-warn-ignored",
+    "lint": "eslint . --no-warn-ignored --max-warnings=0",
     "typecheck": "astro check",
     "clean": "rm -rf .astro dist"
   },

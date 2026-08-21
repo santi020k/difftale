@@ -8,8 +8,8 @@ describe('local commit fallback', () => {
     expect(
       getScopeFromPaths([
         'packages/checkout/src/cart.ts',
-        'packages/checkout/tests/cart.test.ts',
-      ]),
+        'packages/checkout/tests/cart.test.ts'
+      ])
     ).toBe('checkout')
   })
 

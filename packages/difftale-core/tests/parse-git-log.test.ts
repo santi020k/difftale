@@ -6,7 +6,7 @@ describe('parseGitLog', () => {
   test('uses the destination path for a rename revision', () => {
     const output = [
       '\u001eabc123\u001fabc123\u001fSantiago\u001f2026-07-23T20:00:00-05:00\u001frefactor: rename file\u001fExplain rename\u001f',
-      '\nR100\tsrc/old-name.ts\tsrc/new-name.ts\n',
+      '\nR100\tsrc/old-name.ts\tsrc/new-name.ts\n'
     ].join('')
 
     expect(parseGitLog(output)).toEqual([
@@ -18,8 +18,8 @@ describe('parseGitLog', () => {
         filePath: 'src/new-name.ts',
         hash: 'abc123',
         shortHash: 'abc123',
-        subject: 'refactor: rename file',
-      },
+        subject: 'refactor: rename file'
+      }
     ])
   })
 

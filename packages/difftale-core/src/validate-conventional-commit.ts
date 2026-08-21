@@ -3,14 +3,14 @@ import { parseConventionalCommit } from './parse-conventional-commit.js'
 import type {
   CommitValidationOptions,
   CommitValidationResult,
-  ConventionalCommit,
+  ConventionalCommit
 } from './types.js'
 
 const getCommitErrors = (
   parsedCommit: ConventionalCommit,
   header: string,
   allowedTypes: readonly string[],
-  maximumHeaderLengthCharacters: number,
+  maximumHeaderLengthCharacters: number
 ): string[] => {
   const errors: string[] = []
 
@@ -41,14 +41,14 @@ const getCommitErrors = (
 
 export const validateConventionalCommit = (
   message: string,
-  options: CommitValidationOptions = {},
+  options: CommitValidationOptions = {}
 ): CommitValidationResult => {
   const parsedCommit = parseConventionalCommit(message)
 
   if (!parsedCommit) {
     return {
       errors: ['Use the format type(optional-scope): summary.'],
-      valid: false,
+      valid: false
     }
   }
 
@@ -60,14 +60,11 @@ export const validateConventionalCommit = (
   const [header = ''] = message.replaceAll('\r\n', '\n').split('\n')
 
   const errors = getCommitErrors(
-    parsedCommit,
-    header,
-    allowedTypes,
-    maximumHeaderLengthCharacters,
+    parsedCommit, header, allowedTypes, maximumHeaderLengthCharacters
   )
 
   return {
     errors,
-    valid: errors.length === 0,
+    valid: errors.length === 0
   }
 }

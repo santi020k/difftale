@@ -1,11 +1,16 @@
 export const getCommitComposerHtml = (
   contentSecurityPolicySource: string,
-  nonce: string,
-): string => `<!DOCTYPE html>
+  nonce: string
+): string => {
+  const stylePolicy = `style-src ${contentSecurityPolicySource} 'nonce-${nonce}'`
+  const scriptPolicy = `script-src 'nonce-${nonce}'`
+  const contentSecurityPolicy = `default-src 'none'; ${stylePolicy}; ${scriptPolicy};`
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${contentSecurityPolicySource} 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
+  <meta http-equiv="Content-Security-Policy" content="${contentSecurityPolicy}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style nonce="${nonce}">
     body {
@@ -703,3 +708,4 @@ export const getCommitComposerHtml = (
   </script>
 </body>
 </html>`
+}

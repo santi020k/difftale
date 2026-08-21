@@ -8,7 +8,7 @@ describe('buildCommitPrompt', () => {
       context: {
         configurationFiles: ['commitlint.config.js'],
         recentSubjects: ['feat(checkout): add cart'],
-        suggestedScopes: ['checkout'],
+        suggestedScopes: ['checkout']
       },
       diff: '123456789',
       settings: {
@@ -16,8 +16,8 @@ describe('buildCommitPrompt', () => {
         customInstructions: ['Prefer product scopes.'],
         draftCount: 3,
         maximumDiffLengthCharacters: 5,
-        maximumHeaderLengthCharacters: 72,
-      },
+        maximumHeaderLengthCharacters: 72
+      }
     })
 
     expect(prompt).toContain('commitlint.config.js')
@@ -31,7 +31,7 @@ describe('buildCommitPrompt', () => {
       context: {
         configurationFiles: [],
         recentSubjects: [],
-        suggestedScopes: [],
+        suggestedScopes: []
       },
       diff: [
         '--- a/first.ts',
@@ -39,15 +39,15 @@ describe('buildCommitPrompt', () => {
         '+first',
         '--- a/second.ts',
         '+++ b/second.ts',
-        '+second',
+        '+second'
       ].join('\n'),
       settings: {
         allowedTypes: ['feat'],
         customInstructions: [],
         draftCount: 1,
         maximumDiffLengthCharacters: 40,
-        maximumHeaderLengthCharacters: 72,
-      },
+        maximumHeaderLengthCharacters: 72
+      }
     })
 
     expect(prompt).toContain('Changed files:\n\nfirst.ts\nsecond.ts')

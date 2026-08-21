@@ -10,12 +10,11 @@ import { GitOperationRunner } from '../src/git/git-operation-runner'
 
 const temporaryDirectories: string[] = []
 
-const runGit = (repositoryPath: string, arguments_: string[]): string =>
-  execFileSync('git', arguments_, {
-    cwd: repositoryPath,
-    encoding: 'utf8',
-    stdio: 'pipe',
-  })
+const runGit = (repositoryPath: string, arguments_: string[]): string => execFileSync('git', arguments_, {
+  cwd: repositoryPath,
+  encoding: 'utf8',
+  stdio: 'pipe'
+})
 
 const createRepository = (): string => {
   const repositoryPath = mkdtempSync(join(tmpdir(), 'difftale-operation-'))
@@ -33,7 +32,7 @@ const createRepository = (): string => {
 const createHook = (
   repositoryPath: string,
   hookName: 'pre-commit' | 'pre-push',
-  script: string,
+  script: string
 ): string => {
   const hookPath = join(repositoryPath, '.git', 'hooks', hookName)
   writeFileSync(hookPath, `#!/bin/sh\n${script}\n`)
@@ -59,18 +58,17 @@ describe('GitOperationRunner', () => {
         arguments: ['commit', '--file=-'],
         input: 'feat(core): add feature\n',
         kind: 'commit',
-        repositoryPath,
-      },
-      {
-        onOutput: output => streamedOutput.push(output),
-      },
+        repositoryPath
+      }, {
+        onOutput: output => streamedOutput.push(output)
+      }
     )
 
     expect(result.succeeded).toBe(true)
     expect(result.output).toContain('pre-commit checks passed')
     expect(streamedOutput.join('')).toContain('pre-commit checks passed')
     expect(runGit(repositoryPath, ['log', '-1', '--format=%s']).trim()).toBe(
-      'feat(core): add feature',
+      'feat(core): add feature'
     )
   })
 
@@ -82,7 +80,7 @@ describe('GitOperationRunner', () => {
       arguments: ['commit', '--file=-'],
       input: 'feat(core): add feature\n',
       kind: 'commit',
-      repositoryPath,
+      repositoryPath
     })
 
     expect(result.succeeded).toBe(false)
@@ -103,7 +101,7 @@ describe('GitOperationRunner', () => {
     const result = await runner.run({
       arguments: ['push', '--set-upstream', 'origin', 'main'],
       kind: 'push',
-      repositoryPath,
+      repositoryPath
     })
 
     expect(result.succeeded).toBe(true)
@@ -119,8 +117,8 @@ describe('GitOperationRunner', () => {
       {
         exists: true,
         name: 'pre-push',
-        path: hookPath,
-      },
+        path: hookPath
+      }
     ])
   })
 
@@ -137,8 +135,8 @@ describe('GitOperationRunner', () => {
       {
         exists: true,
         name: 'pre-commit',
-        path: hookPath,
-      },
+        path: hookPath
+      }
     ])
   })
 })

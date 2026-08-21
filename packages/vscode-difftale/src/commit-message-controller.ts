@@ -2,7 +2,7 @@ import {
   type ConventionalCommit,
   formatConventionalCommit,
   type GitRepository,
-  validateConventionalCommit,
+  validateConventionalCommit
 } from '@santi020k/difftale-core'
 
 import * as vscode from 'vscode'
@@ -55,16 +55,16 @@ export class CommitMessageController {
       const type = requireCompositionValue(
         await vscode.window.showQuickPick([...settings.allowedTypes], {
           placeHolder: 'Select a Conventional Commit type',
-          title: 'Difftale: Compose Commit',
-        }),
+          title: 'Difftale: Compose Commit'
+        })
       )
 
       const scope = requireCompositionValue(
         await vscode.window.showInputBox({
           placeHolder: 'checkout',
           prompt: 'Optional short feature or package scope',
-          title: 'Difftale: Commit Scope',
-        }),
+          title: 'Difftale: Commit Scope'
+        })
       )
 
       const summary = requireCompositionValue(
@@ -81,22 +81,22 @@ export class CommitMessageController {
               breaking: false,
               scope: scope.trim() || undefined,
               summary: value.trim(),
-              type,
+              type
             })
 
             const result = validateConventionalCommit(candidate, settings)
 
             return result.valid ? undefined : result.errors.join(' ')
-          },
-        }),
+          }
+        })
       )
 
       const body = requireCompositionValue(
         await vscode.window.showInputBox({
           placeHolder: 'Explain what changed and why',
           prompt: 'Optional detailed description',
-          title: 'Difftale: Commit Body',
-        }),
+          title: 'Difftale: Commit Body'
+        })
       )
 
       const breakingSelection = requireCompositionValue(
@@ -105,45 +105,44 @@ export class CommitMessageController {
             {
               breaking: false,
               description: 'No public API incompatibility',
-              label: 'No breaking change',
+              label: 'No breaking change'
             },
             {
               breaking: true,
               description: 'Adds ! to the header and a BREAKING CHANGE footer',
-              label: 'Breaking change',
-            },
-          ],
-          {
+              label: 'Breaking change'
+            }
+          ], {
             placeHolder: 'Does this commit introduce a breaking change?',
-            title: 'Difftale: Breaking Change',
-          },
-        ),
+            title: 'Difftale: Breaking Change'
+          }
+        )
       )
 
       const footer = requireCompositionValue(
-        breakingSelection.breaking
-          ? await vscode.window.showInputBox({
-              placeHolder: 'checkout sessions now require an identifier',
-              prompt: 'Describe the incompatible behavior',
-              title: 'Difftale: Breaking Change Description',
-              validateInput: value => value.trim() ? undefined : 'A description is required.',
-            })
-          : await vscode.window.showInputBox({
-              placeHolder: 'Refs: #42',
-              prompt: 'Optional issue reference or Git trailer',
-              title: 'Difftale: Commit Footer',
-            }),
+        breakingSelection.breaking ?
+          await vscode.window.showInputBox({
+            placeHolder: 'checkout sessions now require an identifier',
+            prompt: 'Describe the incompatible behavior',
+            title: 'Difftale: Breaking Change Description',
+            validateInput: value => value.trim() ? undefined : 'A description is required.'
+          }) :
+          await vscode.window.showInputBox({
+            placeHolder: 'Refs: #42',
+            prompt: 'Optional issue reference or Git trailer',
+            title: 'Difftale: Commit Footer'
+          })
       )
 
       const message = formatConventionalCommit({
         body: body.trim() || undefined,
         breaking: breakingSelection.breaking,
-        footer: breakingSelection.breaking
-          ? `BREAKING CHANGE: ${footer.trim()}`
-          : footer.trim() || undefined,
+        footer: breakingSelection.breaking ?
+          `BREAKING CHANGE: ${footer.trim()}` :
+          footer.trim() || undefined,
         scope: scope.trim() || undefined,
         summary: summary.trim(),
-        type,
+        type
       })
 
       await this.#applyMessage(repositoryPath, message)
@@ -168,14 +167,13 @@ export class CommitMessageController {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.SourceControl,
-        title: 'Difftale is creating commit drafts',
-      },
-      async (_progress, cancellationToken) => {
+        title: 'Difftale is creating commit drafts'
+      }, async (_progress, cancellationToken) => {
         const diff = await this.#repository.getStagedDiff(repositoryPath)
 
         if (!diff.trim()) {
           await vscode.window.showWarningMessage(
-            'Stage the changes you want Difftale to describe first.',
+            'Stage the changes you want Difftale to describe first.'
           )
 
           return
@@ -188,10 +186,8 @@ export class CommitMessageController {
           buildCommitPrompt({
             context: projectContext,
             diff,
-            settings,
-          }),
-          settings.modelFamily,
-          cancellationToken,
+            settings
+          }), settings.modelFamily, cancellationToken
         )
 
         const validMessages = drafts
@@ -199,22 +195,22 @@ export class CommitMessageController {
           .filter(message => validateConventionalCommit(message, settings).valid)
 
         const messages =
-          validMessages.length > 0
-            ? validMessages
-            : [
-                formatConventionalCommit(
-                  createFallbackCommit(
-                    await this.#repository.getStagedFilePaths(repositoryPath),
-                  ),
-                ),
-              ]
+          validMessages.length > 0 ?
+            validMessages :
+            [
+              formatConventionalCommit(
+                createFallbackCommit(
+                  await this.#repository.getStagedFilePaths(repositoryPath)
+                )
+              )
+            ]
 
         const selectedMessage = await this.#pickMessage(messages, Boolean(validMessages.length))
 
         if (selectedMessage) {
           await this.#applyMessage(repositoryPath, selectedMessage)
         }
-      },
+      }
     )
   }
 
@@ -225,7 +221,7 @@ export class CommitMessageController {
       await vscode.env.clipboard.writeText(message)
 
       await vscode.window.showInformationMessage(
-        'Difftale copied the commit message because the Git Source Control input was unavailable.',
+        'Difftale copied the commit message because the Git Source Control input was unavailable.'
       )
 
       return
@@ -237,14 +233,14 @@ export class CommitMessageController {
   async #generateWithModel(
     prompt: string,
     modelFamily: string | undefined,
-    cancellationToken: vscode.CancellationToken,
+    cancellationToken: vscode.CancellationToken
   ): Promise<ConventionalCommit[]> {
     let models: readonly vscode.LanguageModelChat[]
 
     try {
       models = await vscode.lm.selectChatModels({
         family: modelFamily,
-        vendor: 'copilot',
+        vendor: 'copilot'
       })
     } catch {
       return []
@@ -258,9 +254,7 @@ export class CommitMessageController {
 
     try {
       const response = await model.sendRequest(
-        [vscode.LanguageModelChatMessage.User(prompt)],
-        {},
-        cancellationToken,
+        [vscode.LanguageModelChatMessage.User(prompt)], {}, cancellationToken
       )
 
       let responseText = ''
@@ -274,7 +268,7 @@ export class CommitMessageController {
       const message = error instanceof Error ? error.message : 'The selected model failed.'
 
       await vscode.window.showWarningMessage(
-        `Difftale used a local fallback because AI generation failed: ${message}`,
+        `Difftale used a local fallback because AI generation failed: ${message}`
       )
 
       return []
@@ -283,7 +277,7 @@ export class CommitMessageController {
 
   async #pickMessage(
     messages: readonly string[],
-    generatedWithModel: boolean,
+    generatedWithModel: boolean
   ): Promise<string | undefined> {
     const items: CommitDraftQuickPickItem[] = messages.map((message, index) => {
       const [header = '', ...bodyLines] = message.split('\n')
@@ -292,7 +286,7 @@ export class CommitMessageController {
         description: generatedWithModel ? `AI draft ${index + 1}` : 'Local fallback',
         detail: bodyLines.join(' ').trim() || undefined,
         label: header,
-        message,
+        message
       }
     })
 
@@ -300,7 +294,7 @@ export class CommitMessageController {
       matchOnDescription: true,
       matchOnDetail: true,
       placeHolder: 'Select an editable commit draft',
-      title: 'Difftale: Conventional Commit Drafts',
+      title: 'Difftale: Conventional Commit Drafts'
     })
 
     return selectedItem?.message

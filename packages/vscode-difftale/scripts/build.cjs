@@ -11,7 +11,7 @@ const buildOptions = {
   outfile: 'dist/extension.js',
   platform: 'node',
   sourcemap: true,
-  target: 'node22',
+  target: 'node22'
 }
 
 const run = async () => {

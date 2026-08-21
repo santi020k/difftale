@@ -1,6 +1,6 @@
 import {
   MODEL_PROMPT_TOKEN_HEADROOM_COUNT,
-  PROMPT_BUDGET_SEARCH_ITERATION_LIMIT_COUNT,
+  PROMPT_BUDGET_SEARCH_ITERATION_LIMIT_COUNT
 } from '../constants'
 import type { CommitGenerationSettings, CommitProjectContext } from '../types'
 import { fitDiffToCharacterLimit } from '../utils/fit-diff-to-character-limit'
@@ -20,14 +20,13 @@ export const fitCommitPrompt = async ({
   countTokens,
   diff,
   maximumInputTokens,
-  settings,
+  settings
 }: FitCommitPromptOptions): Promise<string> => {
   const tokenBudget = maximumInputTokens - MODEL_PROMPT_TOKEN_HEADROOM_COUNT
   let lowerLengthCharacters = 0
 
   let upperLengthCharacters = Math.min(
-    diff.length,
-    settings.maximumDiffLengthCharacters,
+    diff.length, settings.maximumDiffLengthCharacters
   )
 
   let fittedPrompt = buildCommitPrompt({ context, diff: '', settings })
@@ -42,13 +41,13 @@ export const fitCommitPrompt = async ({
     iterationCount < PROMPT_BUDGET_SEARCH_ITERATION_LIMIT_COUNT
   ) {
     const candidateLengthCharacters = Math.floor(
-      (lowerLengthCharacters + upperLengthCharacters) / 2,
+      (lowerLengthCharacters + upperLengthCharacters) / 2
     )
 
     const candidatePrompt = buildCommitPrompt({
       context,
       diff: fitDiffToCharacterLimit(diff, candidateLengthCharacters),
-      settings,
+      settings
     })
 
     if (await countTokens(candidatePrompt) <= tokenBudget) {

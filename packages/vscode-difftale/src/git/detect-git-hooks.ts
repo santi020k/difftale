@@ -10,16 +10,14 @@ const executeFile = promisify(execFile)
 
 const runOptionalGitCommand = async (
   repositoryPath: string,
-  arguments_: readonly string[],
+  arguments_: readonly string[]
 ): Promise<string | undefined> => {
   try {
     const { stdout } = await executeFile(
-      'git',
-      [...arguments_],
-      {
+      'git', [...arguments_], {
         cwd: repositoryPath,
-        encoding: 'utf8',
-      },
+        encoding: 'utf8'
+      }
     )
 
     return stdout.trim() || undefined
@@ -40,29 +38,27 @@ const fileExists = async (filePath: string): Promise<boolean> => {
 
 const resolveHooksDirectory = async (repositoryPath: string): Promise<string> => {
   const configuredHooksPath = await runOptionalGitCommand(
-    repositoryPath,
-    ['config', '--path', '--get', 'core.hooksPath'],
+    repositoryPath, ['config', '--path', '--get', 'core.hooksPath']
   )
 
   if (configuredHooksPath) {
-    return isAbsolute(configuredHooksPath)
-      ? configuredHooksPath
-      : resolve(repositoryPath, configuredHooksPath)
+    return isAbsolute(configuredHooksPath) ?
+      configuredHooksPath :
+      resolve(repositoryPath, configuredHooksPath)
   }
 
   const gitHooksPath = await runOptionalGitCommand(
-    repositoryPath,
-    ['rev-parse', '--git-path', 'hooks'],
+    repositoryPath, ['rev-parse', '--git-path', 'hooks']
   )
 
-  return gitHooksPath && isAbsolute(gitHooksPath)
-    ? gitHooksPath
-    : resolve(repositoryPath, gitHooksPath ?? '.git/hooks')
+  return gitHooksPath && isAbsolute(gitHooksPath) ?
+    gitHooksPath :
+    resolve(repositoryPath, gitHooksPath ?? '.git/hooks')
 }
 
 export const detectGitHooks = async (
   repositoryPath: string,
-  hookNames: readonly GitHook['name'][],
+  hookNames: readonly GitHook['name'][]
 ): Promise<GitHook[]> => {
   const hooksDirectory = await resolveHooksDirectory(repositoryPath)
 
@@ -73,8 +69,8 @@ export const detectGitHooks = async (
       return {
         exists: await fileExists(path),
         name,
-        path,
+        path
       }
-    }),
+    })
   )
 }

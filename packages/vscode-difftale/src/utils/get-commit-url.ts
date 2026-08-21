@@ -1,7 +1,7 @@
 const normalizeRemoteUrl = (remoteUrl: string): URL | undefined => {
-  const scpMatch = remoteUrl.includes('://')
-    ? undefined
-    : /^(?:[^@]+@)?(?<host>[^:]+):(?<path>.+)$/u.exec(remoteUrl)
+  const scpMatch = remoteUrl.includes('://') ?
+    undefined :
+    /^(?:[^@]+@)?(?<host>[^:]+):(?<path>.+)$/u.exec(remoteUrl)
 
   try {
     const host = scpMatch?.groups?.host
@@ -21,7 +21,7 @@ const normalizeRemoteUrl = (remoteUrl: string): URL | undefined => {
 
 export const getCommitUrl = (
   remoteUrl: string,
-  commitHash: string,
+  commitHash: string
 ): string | undefined => {
   const repositoryUrl = normalizeRemoteUrl(remoteUrl)
 
@@ -29,9 +29,9 @@ export const getCommitUrl = (
 
   repositoryUrl.pathname = repositoryUrl.pathname.replace(/\.git$/u, '')
 
-  const commitSegment = repositoryUrl.hostname.includes('bitbucket.org')
-    ? 'commits'
-    : 'commit'
+  const commitSegment = repositoryUrl.hostname.includes('bitbucket.org') ?
+    'commits' :
+    'commit'
 
   repositoryUrl.pathname = `${repositoryUrl.pathname}/${commitSegment}/${commitHash}`
 

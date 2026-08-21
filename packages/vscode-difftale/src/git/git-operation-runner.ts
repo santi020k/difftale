@@ -14,26 +14,26 @@ interface GitOperationRunnerOptions {
 export class GitOperationRunner {
   public run = async (
     request: GitOperationRequest,
-    options: GitOperationRunnerOptions = {},
+    options: GitOperationRunnerOptions = {}
   ): Promise<GitOperationResult> => {
     let childProcess: ReturnType<typeof spawn> | undefined
     let cancelledByPrompt = false
 
-    const askpassBridge = options.onPrompt
-      ? await GitAskpassBridge.create({
-          onPrompt: async prompt => {
-            const response = await options.onPrompt?.(prompt)
+    const askpassBridge = options.onPrompt ?
+      await GitAskpassBridge.create({
+        onPrompt: async prompt => {
+          const response = await options.onPrompt?.(prompt)
 
-            if (response === undefined) {
-              cancelledByPrompt = true
+          if (response === undefined) {
+            cancelledByPrompt = true
 
-              childProcess?.kill()
-            }
+            childProcess?.kill()
+          }
 
-            return response
-          },
-        })
-      : undefined
+          return response
+        }
+      }) :
+      undefined
 
     try {
       return await new Promise((resolve, reject) => {
@@ -46,9 +46,9 @@ export class GitOperationRunner {
           cwd: request.repositoryPath,
           env: {
             ...process.env,
-            ...askpassBridge?.environment,
+            ...askpassBridge?.environment
           },
-          stdio: ['pipe', 'pipe', 'pipe'],
+          stdio: ['pipe', 'pipe', 'pipe']
         })
 
         const appendOutput = (chunk: Buffer): void => {
@@ -97,7 +97,7 @@ export class GitOperationRunner {
             durationMilliseconds: Math.round(performance.now() - startedAt),
             exitCode,
             output: outputChunks.join(''),
-            succeeded: exitCode === 0,
+            succeeded: exitCode === 0
           })
         })
 
