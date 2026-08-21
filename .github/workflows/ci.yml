@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -50,3 +51,14 @@ jobs:
 
       - name: Package extension
         run: pnpm run package:extension
+
+      - name: Report dispatched validation
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh api --method POST
+          "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"
+          -f state=success
+          -f context='Build and validate (22.x)'
+          -f description='Dispatched release validation passed'
