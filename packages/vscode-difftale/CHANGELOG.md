@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.1
+
+### Patch Changes
+
+- [#13](https://github.com/santi020k/difftale/pull/13) [`3479eee`](https://github.com/santi020k/difftale/commit/3479eee07a0acc81e2df4498983ad92d3f99ed3b) Thanks [@santi020k](https://github.com/santi020k)! - Normalize the optional trailing DNS dot in Bitbucket remotes before creating commit links.
+
+- [#7](https://github.com/santi020k/difftale/pull/7) [`593183e`](https://github.com/santi020k/difftale/commit/593183ef4f3bf7f41e5e7fd66a1ba44b985e032e) Thanks [@santi020k](https://github.com/santi020k)! - Match Bitbucket commit links by exact hostname so lookalike hosts cannot select a provider-specific route.
+
+- Updated dependencies []:
+  - @santi020k/difftale-core@0.9.1
+
 ## 0.9.0
 
 ### Minor Changes
