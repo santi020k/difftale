@@ -12,7 +12,7 @@
     "lint:repo": "eslint . --no-warn-ignored --max-warnings=0",
     "lint:repo:fix": "eslint . --fix --no-warn-ignored --max-warnings=0",
     "ok": "pnpm install --frozen-lockfile && pnpm run build && pnpm run test && pnpm run lint && pnpm run typecheck",
-    "package:extension": "pnpm --filter vscode-difftale package",
+    "package:extension": "pnpm --filter @santi020k/difftale-core build && pnpm --filter vscode-difftale package",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "turbo run build && changeset publish",
