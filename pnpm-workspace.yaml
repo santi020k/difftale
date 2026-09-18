@@ -36,6 +36,6 @@ catalog:
   husky: ^9.1.7
   turbo: ^2.10.4
   typescript: ^6.0.3
-  vitest: ^4.1.10
+  vitest: ^5.0.1
 minimumReleaseAgeExclude:
   - "@santi020k/eslint-config-typescript"
