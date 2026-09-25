@@ -2,6 +2,10 @@
   "name": "@santi020k/difftale-core",
   "version": "0.9.0",
   "description": "Conventional Commit and Git history primitives for Difftale.",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

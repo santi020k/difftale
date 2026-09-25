@@ -11,24 +11,26 @@ catalog:
   "@changesets/cli": ^3.0.3
   "@santi020k/commitprompt": ^1.0.0
   "@santi020k/eslint-config-astro": ^3.1.0
-  "@santi020k/eslint-config-basic": 3.2.0
+  "@santi020k/eslint-config-basic": 3.4.0
   "@santi020k/eslint-config-extensions": ^3.1.0
   "@santi020k/eslint-config-formats": ^3.1.0
   "@santi020k/eslint-config-libraries": ^3.1.0
   "@santi020k/eslint-config-testing": ^3.1.0
   "@santi020k/eslint-config-tools": ^3.1.0
-  "@santi020k/lumen-astro": 1.0.0
+  "@santi020k/lumen-astro": 2.1.0
   "@types/node": ^26.1.1
   "@types/vscode": ^1.125.0
   "@vitest/coverage-v8": ^4.1.11
   astro: ^7.3.4
   esbuild: ^0.28.1
   eslint: 10.7.0
-  husky: ^9.1.7
   turbo: ^2.10.4
   typescript: ^6.0.3
   vitest: ^4.1.11
 minimumReleaseAgeExclude:
+  - "@santi020k/lumen-astro@2.1.0"
+  - "@santi020k/lumen-core@2.1.0"
+  - "@santi020k/lumen@2.1.0"
   - "@santi020k/eslint-config-typescript"
   - js-yaml@4.3.2
 overrides:

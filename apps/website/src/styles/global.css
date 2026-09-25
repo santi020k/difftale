@@ -433,7 +433,7 @@ code {
   justify-content: center;
 }
 
-.signal-strip .ui-icon {
+.signal-strip .signal-icon {
   color: hsl(var(--brand));
 }
 
@@ -914,7 +914,7 @@ code {
     padding-inline: 10px;
   }
 
-  .site-header > :last-child .ui-icon {
+  .site-header > :last-child .site-repository-icon {
     display: none;
   }
 

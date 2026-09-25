@@ -2,6 +2,8 @@
   "name": "@santi020k/difftale-root",
   "version": "0.0.0",
   "private": true,
+  "description": "AI-assisted Conventional Commits, pull request drafts, and file history for VS Code.",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "turbo run build",
@@ -21,7 +23,7 @@
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
     "typecheck": "turbo run typecheck",
-    "prepare": "husky",
+    "hooks:install": "quality hooks install",
     "pre-push": "pnpm run ok",
     "commit": "commitprompt"
   },
@@ -38,7 +40,6 @@
     "@santi020k/eslint-config-tools": "catalog:",
     "@types/node": "catalog:",
     "eslint": "catalog:",
-    "husky": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:"
   },
