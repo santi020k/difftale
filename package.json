@@ -23,7 +23,7 @@
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
     "typecheck": "turbo run typecheck",
-    "hooks:install": "quality hooks install",
+    "prepare": "husky",
     "pre-push": "pnpm run ok",
     "commit": "commitprompt"
   },
@@ -40,6 +40,7 @@
     "@santi020k/eslint-config-tools": "catalog:",
     "@types/node": "catalog:",
     "eslint": "catalog:",
+    "husky": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:"
   },
