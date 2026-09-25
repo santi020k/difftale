@@ -4,6 +4,18 @@
   <p><strong>AI-crafted commits, pull request drafts, and effortless file history for VS Code.</strong></p>
 </div>
 
+<p align="center">
+  <a href="https://open-vsx.org/extension/santi020k/vscode-difftale">Open VSX</a> ·
+  <a href="https://github.com/santi020k/difftale/releases">Releases</a> ·
+  <a href="https://github.com/santi020k/difftale/issues">Issues</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/santi020k/difftale/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/santi020k/difftale/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://open-vsx.org/extension/santi020k/vscode-difftale"><img alt="Open VSX" src="https://img.shields.io/open-vsx/v/santi020k/vscode-difftale"></a>
+  <a href="./LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
+</p>
+
 Difftale adds a focused layer to VS Code's Git experience. It helps you write
 clear Conventional Commits, prepare pull requests, move through the history of
 the file you are editing, and run commits and pushes with visible hook output.

@@ -2,6 +2,8 @@
   "name": "@santi020k/difftale-root",
   "version": "0.0.0",
   "private": true,
+  "description": "AI-assisted Conventional Commits, pull request drafts, and file history for VS Code.",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "turbo run build",
