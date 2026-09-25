@@ -1,6 +1,6 @@
 {
   "name": "@santi020k/difftale-core",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Conventional Commit and Git history primitives for Difftale.",
   "publishConfig": {
     "access": "public",
